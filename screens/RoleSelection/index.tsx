@@ -1,6 +1,8 @@
 import { ScreenWrapper } from "@/components/common/wrappers/ScreenWrapper";
 import ButtonPrimary from "@/components/ui/buttons/ButtonPrimary";
 import LogoImg from "@/components/ui/images/LogoImg";
+import SubTitle from "@/components/ui/titles/SubTitle";
+import Title from "@/components/ui/titles/Title";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import { Image, Text, TouchableOpacity, View } from "react-native";
@@ -28,13 +30,11 @@ export default function RoleSelectionScreen() {
         <LogoImg />
 
         {/* Title */}
-        <Text className="text-xl font-semibold text-gray-900 mb-1">
-          Choose your role
-        </Text>
-        <Text className="text-gray-500 mb-8">How will you use the app?</Text>
+        <Title label="Choose your role" />
+        <SubTitle label="How will you use the app?" />
 
         {/* Role cards */}
-        <View className="flex-row gap-4 mb-8">
+        <View className="flex-row gap-4 my-6">
           {/* Citizen */}
           <TouchableOpacity
             onPress={() => setSelectedRole("CITIZEN")}
@@ -68,7 +68,7 @@ export default function RoleSelectionScreen() {
 
           {/* Authority */}
           <TouchableOpacity
-            onPress={() => setSelectedRole("AUTHORITY")}
+            onPress={() => router.push("/issues-list")}
             className={`w-36 h-fit rounded-2xl items-center justify-center p-6
                 ${
                   selectedRole === "AUTHORITY"
@@ -103,7 +103,7 @@ export default function RoleSelectionScreen() {
           label="Continue"
           onPress={() =>
             router.push({
-              pathname: "/signup",
+              pathname: "/create-issue",
               params: { role: selectedRole },
             })
           }
