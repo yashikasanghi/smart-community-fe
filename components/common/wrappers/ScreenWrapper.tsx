@@ -3,7 +3,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 export function ScreenWrapper({
   children,
-  cssClass = "",
+  cssClass = "px-6 py-8 px-4",
 }: {
   children: React.ReactNode;
   cssClass?: string;
@@ -16,7 +16,7 @@ export function ScreenWrapper({
         keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
       >
         <View
-          className={`flex-1 bg-white px-4 items-center justify-center bg-white rounded-3xl px-6 py-8 shadow-lg m-4 ${cssClass}`}
+          className={`flex-1 bg-white items-center justify-center bg-white rounded-3xl shadow-lg ${cssClass}`}
           style={{
             shadowColor: "#000",
             shadowOffset: { width: 0, height: 10 },
