@@ -3,12 +3,20 @@ import { Pressable, Text } from "react-native";
 type Props = {
   label: string;
   onPress: () => void;
+  cssClass?: string;
 };
 
-export default function TextLink({ label, onPress }: Readonly<Props>) {
+export default function TextLink({
+  label,
+  onPress,
+  cssClass,
+}: Readonly<Props>) {
   return (
     <Pressable>
-      <Text className="text-primary font-medium px-16 mx-6" onPress={onPress}>
+      <Text
+        className={`text-primary font-medium ${cssClass}`}
+        onPress={onPress}
+      >
         {label}
       </Text>
     </Pressable>

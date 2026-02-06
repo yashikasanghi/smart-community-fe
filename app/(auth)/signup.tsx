@@ -1,4 +1,4 @@
-import SignupScreen from "@/screens/signup";
+import SignupScreen from "@/screens/Signup";
 
 export default function Signup() {
   return <SignupScreen />;

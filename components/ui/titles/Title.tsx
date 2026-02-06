@@ -1,12 +1,14 @@
 import { Text } from "react-native";
 
 type TitleProps = {
-  label: string;
+  label?: string;
 };
 
-export default function Title({ label }: Readonly<TitleProps>) {
+export default function Title({
+  label = "Smart Community",
+}: Readonly<TitleProps>) {
   return (
-    <Text className="text-3xl font-bold text-gray-900 mb-2 text-center">
+    <Text className="text-3xl font-bold text-gray-900 mb-1 text-center">
       {label}
     </Text>
   );
