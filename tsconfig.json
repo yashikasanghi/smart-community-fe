@@ -4,16 +4,18 @@
     "strict": true,
     "jsxImportSource": "nativewind",
     "paths": {
-      "@/*": ["./*"]
+      "@/*": [
+        "./*"
+      ]
     }
   },
   "include": [
     "**/*.ts",
     "**/*.tsx",
-    ".expo/types/**/*.ts",
-    "expo-env.d.ts",
     "tailwind.config.js",
     "nativewind-env.d.ts",
-    "screens/Signup"
+    "screens/Signup",
+    "services/signup.ts",
+    "services/api.ts"
   ]
 }

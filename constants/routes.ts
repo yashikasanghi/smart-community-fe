@@ -1,0 +1,1 @@
+export const ROLE_SELECTION_PAGE = "/role-selection"
