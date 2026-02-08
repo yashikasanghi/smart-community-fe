@@ -3,10 +3,11 @@ import { ScreenWrapper } from "@/components/common/wrappers/ScreenWrapper";
 import IssueStatusSummary from "@/components/issue/issues-summary/IssueStatus";
 import { MY_ISSUE_COUNTS } from "@/graphql/queries/issues";
 import { useProfile } from "@/hooks/useProfile";
-import { routeToCreateIssue } from "@/utils/routes";
+import { routeToCreateIssue, routeToIssuesList } from "@/utils/routes";
 import { Ionicons } from "@expo/vector-icons";
 import { useQuery } from "@apollo/client/react";
 import { Text, TouchableOpacity, View } from "react-native";
+import BottomTabs from "@/components/navigation/BottomTabs";
 
 export default function IssueSummaryScreen() {
   const { user } = useProfile();
@@ -62,6 +63,8 @@ export default function IssueSummaryScreen() {
                       color: "#EF4444",
                     }}
                     cssClass="bg-red-100 "
+                    onIconPress={() => routeToIssuesList("OPEN")}
+                    iconDisabled={counts.open < 1}
                   />
                 </View>
 
@@ -78,6 +81,8 @@ export default function IssueSummaryScreen() {
                       color: "#F59E0B",
                     }}
                     cssClass="bg-amber-100"
+                    onIconPress={() => routeToIssuesList("IN_PROGRESS")}
+                    iconDisabled={counts.inProgress < 1}
                   />
                 </View>
               </View>
@@ -93,6 +98,8 @@ export default function IssueSummaryScreen() {
                       color: "#22C55E",
                     }}
                     cssClass="bg-green-100"
+                    onIconPress={() => routeToIssuesList("RESOLVED")}
+                    iconDisabled={counts.resolved < 1}
                   />
                 </View>
 
@@ -109,6 +116,8 @@ export default function IssueSummaryScreen() {
                       color: "#F97316",
                     }}
                     cssClass="bg-orange-100"
+                    onIconPress={() => routeToIssuesList("REJECTED")}
+                    iconDisabled={counts.rejected < 1}
                   />
                 </View>
               </View>
@@ -130,6 +139,7 @@ export default function IssueSummaryScreen() {
             </View>
           </TouchableOpacity>
         </View>
+        <BottomTabs />
       </View>
     </ScreenWrapper>
   );

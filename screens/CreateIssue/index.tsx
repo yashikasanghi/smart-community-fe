@@ -4,6 +4,7 @@ import LogoImg from "@/components/ui/images/LogoImg";
 import SubTitle from "@/components/ui/titles/SubTitle";
 import Title from "@/components/ui/titles/Title";
 import { ScrollView } from "react-native";
+import BottomTabs from "@/components/navigation/BottomTabs";
 
 export default function CreateIssueScreen() {
   return (
@@ -20,6 +21,7 @@ export default function CreateIssueScreen() {
         {/* Card */}
         <CreateIssueForm />
       </ScrollView>
+      <BottomTabs />
     </ScreenWrapper>
   );
 }
