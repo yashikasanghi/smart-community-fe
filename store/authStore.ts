@@ -1,14 +1,8 @@
 import loginService from "@/services/login";
 import signupService from "@/services/signup";
+import { SignupPayload, User } from "@/types/user.types";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { create } from "zustand";
-
-type User = {
-  id: string;
-  firstName: string;
-  lastName?: string;
-  role: string;
-};
 
 type AuthState = {
   user: User | null;
@@ -16,9 +10,9 @@ type AuthState = {
   loading: boolean;
   error: string | null;
 
-  signup: (payload: any) => Promise<void>;
+  setUser: (user: User) => void;
+  signup: (payload: SignupPayload) => Promise<void>;
   login: (payload: any) => Promise<void>;
-  logout: () => Promise<void>;
   hydrate: () => Promise<void>;
 };
 
@@ -27,6 +21,8 @@ export const useAuthStore = create<AuthState>((set) => ({
   accessToken: null,
   loading: false,
   error: null,
+
+  setUser: (user) => set({ user }),
 
   /* ---------- SIGNUP ---------- */
   signup: async (payload) => {
@@ -76,12 +72,6 @@ export const useAuthStore = create<AuthState>((set) => ({
         loading: false,
       });
     }
-  },
-
-  /* ---------- LOGOUT ---------- */
-  logout: async () => {
-    await AsyncStorage.clear();
-    set({ user: null, accessToken: null });
   },
 
   /* ---------- RESTORE SESSION ---------- */

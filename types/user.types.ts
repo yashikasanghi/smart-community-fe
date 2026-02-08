@@ -13,3 +13,14 @@ export type SignupPayload = {
     state: string;
   };
 };
+
+export type Role = string;
+
+export type RoleSelection = {
+  role: Role;
+  authorityAssignment?: {
+    wardId: string;
+  };
+};
+
+export type User = SignupPayload & RoleSelection;

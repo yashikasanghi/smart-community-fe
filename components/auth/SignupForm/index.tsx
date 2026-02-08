@@ -4,6 +4,7 @@ import TextLink from "@/components/ui/buttons/TextLink";
 import { ROLE_SELECTION_PAGE } from "@/constants/routes";
 import signupUser from "@/services/signup";
 import fetchWardsByPincode from "@/services/wards";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { router } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
@@ -123,9 +124,14 @@ export default function SignupForm() {
       };
 
       const response = await signupUser(payload);
+      if (response) {
+        // Update user state in zustand store
+        const { useAuthStore } = await import("@/store/authStore");
 
-      console.log("Signup success:", response);
-      if (response) router.push(ROLE_SELECTION_PAGE);
+        AsyncStorage.setItem("accessToken", response?.data?.accessToken);
+        useAuthStore.setState({ user: response.user });
+        router.push(ROLE_SELECTION_PAGE);
+      }
       // navigate / show success / store token
     } catch (err) {
       console.error("Signup error:", err);
