@@ -14,13 +14,16 @@ export type SignupPayload = {
   };
 };
 
-export type Role = string;
-
 export type RoleSelection = {
-  role: Role;
+  role: string;
   authorityAssignment?: {
     wardId: string;
   };
+};
+
+export type LoginPayload = {
+  loginKey: string;
+  password: string;
 };
 
 export type User = SignupPayload & RoleSelection;

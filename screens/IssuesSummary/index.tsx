@@ -1,16 +1,37 @@
 import Header from "@/components/common/Header";
 import { ScreenWrapper } from "@/components/common/wrappers/ScreenWrapper";
 import IssueStatusSummary from "@/components/issue/issues-summary/IssueStatus";
+import { MY_ISSUE_COUNTS } from "@/graphql/queries/issues";
+import { useProfile } from "@/hooks/useProfile";
+import { routeToCreateIssue } from "@/utils/routes";
 import { Ionicons } from "@expo/vector-icons";
-import { router } from "expo-router";
+import { useQuery } from "@apollo/client/react";
 import { Text, TouchableOpacity, View } from "react-native";
 
 export default function IssueSummaryScreen() {
+  const { user } = useProfile();
+  type IssueCounts = {
+    open: number;
+    inProgress: number;
+    resolved: number;
+    rejected: number;
+  };
+
+  const { data } = useQuery<{ myIssueCounts: IssueCounts }>(MY_ISSUE_COUNTS, {
+    fetchPolicy: "network-only",
+  });
+
+  const counts = data?.myIssueCounts ?? {
+    open: 0,
+    inProgress: 0,
+    resolved: 0,
+    rejected: 0,
+  };
   return (
     <ScreenWrapper cssClass="p-0">
       <View className="flex-1 bg-[#F6F9FC] w-full">
         {/* Header */}
-        <Header />
+        <Header name={user?.firstName} />
 
         {/* Content */}
         <View className="px-6 mt-8">
@@ -29,39 +50,75 @@ export default function IssueSummaryScreen() {
               My Issues Summary
             </Text>
 
-            <View className="flex-row items-center">
-              {/* Open */}
-              <IssueStatusSummary
-                count={2}
-                status={"Open"}
-                iconDetails={{
-                  name: "document-text-outline",
-                  color: "#EF4444",
-                }}
-                cssClass="bg-red-100 "
-              />
+            <View className="gap-6">
+              <View className="flex-row items-center">
+                <View className="flex-1">
+                  {/* Open */}
+                  <IssueStatusSummary
+                    count={counts.open}
+                    status={"Open"}
+                    iconDetails={{
+                      name: "document-text-outline",
+                      color: "#EF4444",
+                    }}
+                    cssClass="bg-red-100 "
+                  />
+                </View>
 
-              {/* Divider */}
-              <View className="w-px h-10 bg-gray-200 mx-4" />
+                {/* Divider */}
+                <View className="w-px self-stretch bg-gray-300 mx-4" />
 
-              {/* Resolved */}
+                <View className="flex-1">
+                  {/* In Progress */}
+                  <IssueStatusSummary
+                    count={counts.inProgress}
+                    status={"In Progress"}
+                    iconDetails={{
+                      name: "document-text-outline",
+                      color: "#F59E0B",
+                    }}
+                    cssClass="bg-amber-100"
+                  />
+                </View>
+              </View>
 
-              <IssueStatusSummary
-                count={2}
-                status={"Resolved"}
-                iconDetails={{
-                  name: "checkmark-circle-outline",
-                  color: "#22C55E",
-                }}
-                cssClass="bg-green-100"
-              />
+              <View className="flex-row items-center">
+                <View className="flex-1">
+                  {/* Resolved */}
+                  <IssueStatusSummary
+                    count={counts.resolved}
+                    status={"Resolved"}
+                    iconDetails={{
+                      name: "checkmark-circle-outline",
+                      color: "#22C55E",
+                    }}
+                    cssClass="bg-green-100"
+                  />
+                </View>
+
+                {/* Divider */}
+                <View className="w-px self-stretch bg-gray-300 mx-4" />
+
+                <View className="flex-1">
+                  {/* Rejected */}
+                  <IssueStatusSummary
+                    count={counts.rejected}
+                    status={"Rejected"}
+                    iconDetails={{
+                      name: "close-circle-outline",
+                      color: "#F97316",
+                    }}
+                    cssClass="bg-orange-100"
+                  />
+                </View>
+              </View>
             </View>
           </View>
 
           {/* Report New Issue Button */}
           <TouchableOpacity
             className=" rounded-2xl mt-6 bg-blue-600"
-            onPress={() => router.push("/issue-details")}
+            onPress={() => routeToCreateIssue()}
           >
             <View className="flex-row gap-4 rounded-2xl p-4 items-center justify-center">
               <View className="bg-white w-8 h-8 rounded-full items-center justify-center">

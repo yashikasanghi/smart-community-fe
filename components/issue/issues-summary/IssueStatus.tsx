@@ -10,7 +10,10 @@ export default function IssueStatusSummary({
   count: number;
   status: string;
   iconDetails: {
-    name: "document-text-outline" | "checkmark-circle-outline";
+    name:
+      | "document-text-outline"
+      | "checkmark-circle-outline"
+      | "close-circle-outline";
     color: string;
   };
   cssClass: string;

@@ -1,11 +1,9 @@
 import { ModalSelect } from "@/components/common/ModalSelect";
 import ButtonPrimary from "@/components/ui/buttons/ButtonPrimary";
 import TextLink from "@/components/ui/buttons/TextLink";
-import { ROLE_SELECTION_PAGE } from "@/constants/routes";
 import signupUser from "@/services/signup";
 import fetchWardsByPincode from "@/services/wards";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { router } from "expo-router";
+import { routeToLogin, routeToRoleSelection } from "@/utils/routes";
 import { useEffect, useRef, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { Text, TextInput, View } from "react-native";
@@ -105,7 +103,6 @@ export default function SignupForm() {
   };
 
   const onSubmit = async (data: FormData) => {
-    console.log(data);
     try {
       const payload = {
         firstName: data.firstName.trim(),
@@ -125,14 +122,8 @@ export default function SignupForm() {
 
       const response = await signupUser(payload);
       if (response) {
-        // Update user state in zustand store
-        const { useAuthStore } = await import("@/store/authStore");
-
-        AsyncStorage.setItem("accessToken", response?.data?.accessToken);
-        useAuthStore.setState({ user: response.user });
-        router.push(ROLE_SELECTION_PAGE);
+        routeToRoleSelection();
       }
-      // navigate / show success / store token
     } catch (err) {
       console.error("Signup error:", err);
       //error banner
@@ -351,7 +342,7 @@ export default function SignupForm() {
       {/* Footer */}
       <View className="flex-row justify-center">
         <Text className="text-gray-600">Already have an account? Try </Text>
-        <TextLink label={"Login"} onPress={() => router.replace("/login")} />
+        <TextLink label={"Login"} onPress={() => routeToLogin()} />
       </View>
     </View>
   );

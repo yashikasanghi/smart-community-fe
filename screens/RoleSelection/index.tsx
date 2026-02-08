@@ -4,20 +4,16 @@ import LogoImg from "@/components/ui/images/LogoImg";
 import SubTitle from "@/components/ui/titles/SubTitle";
 import Title from "@/components/ui/titles/Title";
 import postRoleSelection from "@/services/selectRole";
-import { useAuthStore } from "@/store/authStore";
-import { Role, RoleSelection } from "@/types/user.types";
-import { useRouter } from "expo-router";
+import { RoleSelection } from "@/types/user.types";
 import { useState } from "react";
 import { Image, Text, TouchableOpacity, View } from "react-native";
 import { useProfile } from "@/hooks/useProfile";
-import { ISSUES_SUMMARY_PAGE } from "@/constants/routes";
+import { routeToIssueSummary } from "@/utils/routes";
 
 export default function RoleSelectionScreen() {
-  const router = useRouter();
-  useProfile();
-  const [selectedRole, setSelectedRole] = useState<Role | null>(null);
+  const [selectedRole, setSelectedRole] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const user = useAuthStore((state) => state.user);
+  const { user } = useProfile();
 
   const submitRole = async () => {
     if (!selectedRole) return;
@@ -35,10 +31,8 @@ export default function RoleSelectionScreen() {
           wardId: user?.location?.wardId as string,
         };
       }
-
       await postRoleSelection(payload);
-
-      router.replace(ISSUES_SUMMARY_PAGE);
+      routeToIssueSummary();
     } catch (err) {
       console.error("Role selection failed", err);
     } finally {

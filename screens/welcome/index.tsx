@@ -4,7 +4,7 @@ import TextLink from "@/components/ui/buttons/TextLink";
 import WelcomeLogo from "@/components/ui/logo/WelcomeLogo";
 import SubTitle from "@/components/ui/titles/SubTitle";
 import Title from "@/components/ui/titles/Title";
-import { router } from "expo-router";
+import { routeToLogin, routeToSignup } from "@/utils/routes";
 import { View } from "react-native";
 
 export default function WelcomeScreen() {
@@ -21,13 +21,10 @@ export default function WelcomeScreen() {
 
         {/* Actions */}
         <View className="mt-auto mb-10">
-          <ButtonPrimary
-            label="Get Started"
-            onPress={() => router.push("/signup")}
-          />
+          <ButtonPrimary label="Get Started" onPress={() => routeToSignup()} />
           <TextLink
             label="Login"
-            onPress={() => router.push("/login")}
+            onPress={() => routeToLogin()}
             cssClass="px-16 mx-6 "
           />
         </View>
