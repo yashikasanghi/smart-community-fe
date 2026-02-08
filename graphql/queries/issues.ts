@@ -31,6 +31,7 @@ export const MY_ISSUES_LIST = gql`
       status
       images
       createdAt
+      updatedAt
     }
   }
 `;

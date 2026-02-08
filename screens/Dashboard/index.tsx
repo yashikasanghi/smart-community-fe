@@ -3,57 +3,119 @@ import { ScreenWrapper } from "@/components/common/wrappers/ScreenWrapper";
 import BottomTabs from "@/components/navigation/BottomTabs";
 import { useProfile } from "@/hooks/useProfile";
 import { analyticsApi } from "@/services/api";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useAnalyticsStore } from "@/store/analyticsStore";
+import { useEffect, useMemo, useRef } from "react";
 import { ScrollView, Text, View } from "react-native";
 
 export default function DashboardScreen() {
   const { user } = useProfile();
   const isAuthority = user?.role === "authority" || user?.role === "AUTHORITY";
 
-  const [score, setScore] = useState(0);
-  const [total, setTotal] = useState(0);
-  const [resolutionRate, setResolutionRate] = useState(0);
-  const [avgResolutionHours, setAvgResolutionHours] = useState(0);
-  const [aiExplanation, setAiExplanation] = useState<string | null>(null);
-  const [statusCounts, setStatusCounts] = useState<
-    { status: string; count: number }[]
-  >([]);
+  const {
+    wardHealthScore,
+    issueDensitySummary,
+    issueCategoryCounts,
+    issuesUpdatedAt,
+    lastFetchedIssuesUpdatedAt,
+    setWardHealthScore,
+    setIssueDensitySummary,
+    setIssueCategoryCounts,
+    setLastFetchedIssuesUpdatedAt,
+  } = useAnalyticsStore();
 
-  const fetchWardHealthScore = useCallback(async () => {
-    if (!isAuthority) return;
-    try {
-      const res = await analyticsApi.post("/analytics", {
-        query: `
-          query WardHealthScore {
-            wardHealthScore {
-              score
-              total
-              resolutionRate
-              avgResolutionHours
-              aiExplanation
-              statusCounts {
-                status
-                count
-              }
-            }
-          }
-        `,
-      });
-      const data = res.data?.data?.wardHealthScore;
-      setScore(data?.score ?? 0);
-      setTotal(data?.total ?? 0);
-      setResolutionRate(data?.resolutionRate ?? 0);
-      setAvgResolutionHours(data?.avgResolutionHours ?? 0);
-      setAiExplanation(data?.aiExplanation ?? null);
-      setStatusCounts(data?.statusCounts ?? []);
-    } catch {
-      setAiExplanation(null);
-    }
-  }, [isAuthority]);
+  const inFlightRef = useRef(false);
+  const lastRequestedRef = useRef<string | null>(null);
 
   useEffect(() => {
-    fetchWardHealthScore();
-  }, [fetchWardHealthScore]);
+    if (!isAuthority) return;
+    const refreshKey = issuesUpdatedAt ?? "init";
+    const shouldRefresh =
+      !wardHealthScore ||
+      !issueDensitySummary ||
+      refreshKey !== lastFetchedIssuesUpdatedAt;
+    if (!shouldRefresh) return;
+    if (inFlightRef.current || lastRequestedRef.current === refreshKey) return;
+    inFlightRef.current = true;
+    lastRequestedRef.current = refreshKey;
+    (async () => {
+      try {
+        const res = await analyticsApi.post("/analytics", {
+          query: `
+            query DashboardAnalytics {
+              wardHealthScore {
+                score
+                total
+                resolutionRate
+                avgResolutionHours
+                aiExplanation
+                statusCounts {
+                  status
+                  count
+                }
+              }
+              issueDensity {
+                summary
+                categoryCounts {
+                  category
+                  count
+                }
+              }
+            }
+          `,
+        });
+        const health = res.data?.data?.wardHealthScore;
+        const density = res.data?.data?.issueDensity;
+        setWardHealthScore(
+          health
+            ? {
+                score: health?.score ?? 0,
+                total: health?.total ?? 0,
+                resolutionRate: health?.resolutionRate ?? 0,
+                avgResolutionHours: health?.avgResolutionHours ?? 0,
+                aiExplanation: health?.aiExplanation ?? null,
+                statusCounts: health?.statusCounts ?? [],
+              }
+            : null,
+        );
+        setIssueDensitySummary(density?.summary ?? null);
+        setIssueCategoryCounts(density?.categoryCounts ?? []);
+      } catch {
+        setWardHealthScore(null);
+        setIssueDensitySummary(null);
+        setIssueCategoryCounts([]);
+      } finally {
+        inFlightRef.current = false;
+        setLastFetchedIssuesUpdatedAt(refreshKey);
+      }
+    })();
+  }, [
+    isAuthority,
+    issueDensitySummary,
+    issuesUpdatedAt,
+    lastFetchedIssuesUpdatedAt,
+    setLastFetchedIssuesUpdatedAt,
+    setIssueCategoryCounts,
+    setIssueDensitySummary,
+    setWardHealthScore,
+    wardHealthScore,
+  ]);
+
+  const score = wardHealthScore?.score ?? 0;
+  const total = wardHealthScore?.total ?? 0;
+  const resolutionRate = wardHealthScore?.resolutionRate ?? 0;
+  const avgResolutionHours = wardHealthScore?.avgResolutionHours ?? 0;
+  const aiExplanation = wardHealthScore?.aiExplanation ?? null;
+  const statusCounts = wardHealthScore?.statusCounts ?? [];
+  const densitySummary = issueDensitySummary ?? null;
+  const categoryCounts = issueCategoryCounts ?? [];
+  const toCategoryLabel = (value?: string) => {
+    if (!value) return "Other";
+    return value
+      .toLowerCase()
+      .split("_")
+      .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+      .join(" ");
+  };
 
   const scoreColor = useMemo(() => {
     if (score >= 80) return "text-green-600";
@@ -65,12 +127,36 @@ export default function DashboardScreen() {
   const statusMap = useMemo(() => {
     return statusCounts.reduce(
       (acc, s) => {
-        acc[s.status] = s.count;
+        const key =
+          typeof s.status === "string" ? s.status.toLowerCase() : s.status;
+        acc[key] = s.count;
         return acc;
       },
       {} as Record<string, number>,
     );
   }, [statusCounts]);
+
+  const displayHealthSummary = useMemo(() => {
+    const invalid =
+      !aiExplanation ||
+      aiExplanation.toLowerCase().includes("unable to generate insight");
+    if (!invalid) return aiExplanation;
+    if (!total) return "No issues found for this ward.";
+    const topStatus = Object.entries(statusMap).sort((a, b) => b[1] - a[1])[0];
+    const topLabel = topStatus?.[0]?.replace("_", " ") ?? "open";
+    return `Health score is ${score}/100 with a ${Math.round(
+      resolutionRate * 100,
+    )}% resolution rate. The largest share of cases are ${topLabel}, and average resolution time is ${avgResolutionHours.toFixed(
+      1,
+    )}h.`;
+  }, [
+    aiExplanation,
+    avgResolutionHours,
+    resolutionRate,
+    score,
+    statusMap,
+    total,
+  ]);
 
   return (
     <ScreenWrapper cssClass="p-0">
@@ -79,6 +165,7 @@ export default function DashboardScreen() {
         <ScrollView
           className="flex-1 px-6 mt-8"
           showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ paddingBottom: 40 }}
         >
           <Text className="text-gray-900 font-semibold text-lg mb-4">
             Ward Health
@@ -116,53 +203,55 @@ export default function DashboardScreen() {
                 </Text>
               </View>
             </View>
+            <View className="bg-gray-100 rounded-xl px-4 py-3 mt-4">
+              <Text className="text-gray-700 text-sm">
+                <Text className="font-semibold">AI Summary:</Text>{" "}
+                {displayHealthSummary ?? "Generating insight..."}
+              </Text>
+            </View>
           </View>
 
           <View className="bg-white rounded-2xl px-5 py-5 mb-6">
             <Text className="text-gray-900 font-semibold mb-3">
-              Status Breakdown
+              Issue Categories
             </Text>
-            {[
-              { label: "Open", key: "OPEN", color: "bg-red-500" },
-              {
-                label: "In Progress",
-                key: "IN_PROGRESS",
-                color: "bg-amber-500",
-              },
-              { label: "Resolved", key: "RESOLVED", color: "bg-green-500" },
-              { label: "Rejected", key: "REJECTED", color: "bg-orange-500" },
-              { label: "Closed", key: "CLOSED", color: "bg-blue-500" },
-            ].map((item) => (
-              <View key={item.key} className="mb-3">
+            {categoryCounts.map((item) => (
+              <View key={item.category} className="mb-3">
                 <View className="flex-row justify-between mb-1">
-                  <Text className="text-gray-600 text-xs">{item.label}</Text>
+                  <Text className="text-gray-600 text-xs">
+                    {toCategoryLabel(item.category)}
+                  </Text>
                   <Text className="text-gray-500 text-xs">
-                    {statusMap[item.key] ?? 0}
+                    {item.count ?? 0}
                   </Text>
                 </View>
                 <View className="h-2 bg-gray-100 rounded-full overflow-hidden">
                   <View
-                    className={`${item.color} h-full`}
+                    className="bg-blue-500 h-full"
                     style={{
                       width: total
-                        ? `${((statusMap[item.key] ?? 0) / total) * 100}%`
+                        ? `${((item.count ?? 0) / total) * 100}%`
                         : "0%",
                     }}
                   />
                 </View>
               </View>
             ))}
-          </View>
-
-          <View className="bg-gray-100 rounded-2xl px-5 py-4 mb-10">
-            <Text className="text-gray-700 text-sm mb-6">
-              <Text className="font-semibold">AI Explanation:</Text>{" "}
-              {aiExplanation ?? "Generating insight..."}
-            </Text>
+            {!categoryCounts.length && (
+              <Text className="text-gray-500 text-xs mb-2">
+                No category data available.
+              </Text>
+            )}
+            <View className="bg-gray-100 rounded-xl px-4 py-3 mt-2">
+              <Text className="text-gray-700 text-sm">
+                <Text className="font-semibold">AI Summary:</Text>{" "}
+                {densitySummary ?? "Generating insight..."}
+              </Text>
+            </View>
           </View>
         </ScrollView>
-        <BottomTabs />
       </View>
+      <BottomTabs />
     </ScreenWrapper>
   );
 }
