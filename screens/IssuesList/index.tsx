@@ -10,6 +10,7 @@ import { useProfile } from "@/hooks/useProfile";
 import { analyticsApi } from "@/services/api";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import BottomTabs from "@/components/navigation/BottomTabs";
+import { useAnalyticsStore } from "@/store/analyticsStore";
 
 type IssueListItem = {
   id: string;
@@ -17,11 +18,13 @@ type IssueListItem = {
   status: string;
   images?: string[];
   createdAt: string;
+  updatedAt?: string;
 };
 
 export default function IssuesList() {
   const { user } = useProfile();
   const { status } = useLocalSearchParams<{ status?: string }>();
+  const { setIssuesUpdatedAt } = useAnalyticsStore();
   const statusValue =
     status === "OPEN" ||
     status === "IN_PROGRESS" ||
@@ -76,6 +79,24 @@ export default function IssuesList() {
   }, [fetchAuthoritySummary]);
 
   const issues = useMemo(() => data?.myIssuesList ?? [], [data]);
+  const latestUpdatedAt = useMemo(() => {
+    if (!issues.length) return null;
+    return issues.reduce<string | null>((latest, issue) => {
+      const candidate = issue.updatedAt ?? issue.createdAt;
+      if (!candidate) return latest;
+      const time = new Date(candidate).getTime();
+      if (Number.isNaN(time)) return latest;
+      if (!latest) return candidate;
+      const latestTime = new Date(latest).getTime();
+      return time > latestTime ? candidate : latest;
+    }, null);
+  }, [issues]);
+
+  useEffect(() => {
+    if (latestUpdatedAt) {
+      setIssuesUpdatedAt(latestUpdatedAt);
+    }
+  }, [latestUpdatedAt, setIssuesUpdatedAt]);
 
   const toLabel = (value: string) => {
     switch (value) {

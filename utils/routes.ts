@@ -10,3 +10,4 @@ export const routeToIssuesList = (status?: string) =>
   router.replace(status ? `/issues-list?status=${status}` : "/issues-list");
 export const routeToIssueSummary = () => router.replace("/issues-summary");
 export const routeToDashboard = () => router.replace("/dashboard");
+export const routeToIssueDensity = () => router.replace("/issue-density");
