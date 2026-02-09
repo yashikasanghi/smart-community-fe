@@ -11,3 +11,4 @@ export const routeToIssuesList = (status?: string) =>
 export const routeToIssueSummary = () => router.replace("/issues-summary");
 export const routeToDashboard = () => router.replace("/dashboard");
 export const routeToIssueDensity = () => router.replace("/issue-density");
+export const routeToNotifications = () => router.push("/notifications");

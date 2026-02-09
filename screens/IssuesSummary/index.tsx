@@ -8,6 +8,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useQuery } from "@apollo/client/react";
 import { Text, TouchableOpacity, View } from "react-native";
 import BottomTabs from "@/components/navigation/BottomTabs";
+import Loader from "@/components/common/Loader";
 
 export default function IssueSummaryScreen() {
   const { user } = useProfile();
@@ -18,9 +19,13 @@ export default function IssueSummaryScreen() {
     rejected: number;
   };
 
-  const { data } = useQuery<{ myIssueCounts: IssueCounts }>(MY_ISSUE_COUNTS, {
-    fetchPolicy: "network-only",
-  });
+  const { data, loading } = useQuery<{ myIssueCounts: IssueCounts }>(
+    MY_ISSUE_COUNTS,
+    {
+      fetchPolicy: "network-only",
+      notifyOnNetworkStatusChange: true,
+    },
+  );
 
   const counts = data?.myIssueCounts ?? {
     open: 0,
@@ -35,7 +40,10 @@ export default function IssueSummaryScreen() {
         <Header name={user?.firstName} />
 
         {/* Content */}
-        <View className="px-6 mt-8">
+        {loading && !data ? (
+          <Loader message="Loading issue summary..." />
+        ) : (
+          <View className="px-6 mt-8">
           {/* Issue Summary Card */}
           <View
             className="bg-white rounded-2xl px-6 py-5"
@@ -138,7 +146,8 @@ export default function IssueSummaryScreen() {
               </Text>
             </View>
           </TouchableOpacity>
-        </View>
+          </View>
+        )}
         <BottomTabs />
       </View>
     </ScreenWrapper>
