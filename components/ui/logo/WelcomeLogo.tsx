@@ -6,6 +6,8 @@ export default function WelcomeLogo() {
       source={require("@/assets/images/sc-splash.png")}
       className="w-44 h-44"
       resizeMode="contain"
+      accessibilityLabel="Smart Community logo"
+      accessible
     />
   );
 }

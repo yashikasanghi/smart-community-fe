@@ -54,6 +54,9 @@ export default function BottomTabs() {
             key={tab.key}
             className="items-center flex-1"
             onPress={tab.onPress}
+            accessibilityRole="button"
+            accessibilityLabel={tab.label}
+            accessibilityState={{ selected: active }}
           >
             <Ionicons name={tab.icon} size={20} color={color} />
             <Text

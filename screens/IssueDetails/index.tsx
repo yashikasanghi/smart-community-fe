@@ -169,6 +169,8 @@ export default function IssueDetailsScreen() {
                     className="rounded-xl"
                     style={{ width: 250, height: 250 }}
                     resizeMode="cover"
+                    accessibilityLabel="Issue image"
+                    accessible
                   />
                 </View>
 
@@ -280,20 +282,24 @@ export default function IssueDetailsScreen() {
                   </Text>
 
                   <View className="bg-gray-50 rounded-2xl px-4 py-3 mb-4">
-                    <TextInput
-                      placeholder="Write a comment..."
-                      value={commentText}
-                      onChangeText={setCommentText}
-                      className="text-gray-800"
-                      multiline
-                    />
-                    <TouchableOpacity
-                      onPress={onAddComment}
-                      disabled={!commentText.trim() || isAdding}
-                      className={`mt-3 px-4 py-2 rounded-full self-end ${
-                        commentText.trim() ? "bg-blue-600" : "bg-gray-300"
-                      }`}
-                    >
+                  <TextInput
+                    placeholder="Write a comment..."
+                    accessibilityLabel="Write a comment"
+                    value={commentText}
+                    onChangeText={setCommentText}
+                    className="text-gray-800"
+                    multiline
+                  />
+                  <TouchableOpacity
+                    onPress={onAddComment}
+                    disabled={!commentText.trim() || isAdding}
+                    className={`mt-3 px-4 py-2 rounded-full self-end ${
+                      commentText.trim() ? "bg-blue-600" : "bg-gray-300"
+                    }`}
+                    accessibilityRole="button"
+                    accessibilityLabel="Post comment"
+                    accessibilityState={{ disabled: !commentText.trim() || isAdding }}
+                  >
                       <Text className="text-white text-sm font-semibold">
                         {isAdding ? "Posting..." : "Post"}
                       </Text>

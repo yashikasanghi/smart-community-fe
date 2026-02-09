@@ -44,6 +44,9 @@ export function ModalSelect({
         className={`border border-gray-300 rounded-xl px-4 justify-center h-12 bg-white ${
           disabled ? "opacity-50" : ""
         }`}
+        accessibilityRole="button"
+        accessibilityLabel={title}
+        accessibilityState={{ disabled, expanded: open }}
       >
         <Text className={selectedLabel ? "text-black" : "text-gray-400"}>
           {selectedLabel || placeholder}
@@ -51,34 +54,36 @@ export function ModalSelect({
       </TouchableOpacity>
 
       {/* Modal */}
-      <Modal
-        transparent
-        visible={open}
-        animationType="fade"
-        onRequestClose={() => setOpen(false)}
-      >
-        {/* Backdrop */}
-        <Pressable
-          onPress={() => setOpen(false)}
-          style={{
-            flex: 1,
-            backgroundColor: "rgba(0,0,0,0.5)",
-            justifyContent: "center",
-            alignItems: "center",
-          }}
+        <Modal
+          transparent
+          visible={open}
+          animationType="fade"
+          onRequestClose={() => setOpen(false)}
         >
-          {/* Box */}
+          {/* Backdrop */}
           <Pressable
-            onPress={() => {}}
+            onPress={() => setOpen(false)}
             style={{
-              width: "85%",
-              maxHeight: "60%",
-              backgroundColor: "#fff",
-              borderRadius: 16,
-              overflow: "hidden",
-              elevation: 12,
+              flex: 1,
+              backgroundColor: "rgba(0,0,0,0.5)",
+              justifyContent: "center",
+              alignItems: "center",
             }}
+            accessibilityLabel="Close selection"
           >
+            {/* Box */}
+            <Pressable
+              onPress={() => {}}
+              style={{
+                width: "85%",
+                maxHeight: "60%",
+                backgroundColor: "#fff",
+                borderRadius: 16,
+                overflow: "hidden",
+                elevation: 12,
+              }}
+              accessibilityViewIsModal
+            >
             {/* Header */}
             <View className="px-4 py-3 border-b border-gray-200">
               <Text className="text-base font-semibold">{title}</Text>
@@ -100,6 +105,8 @@ export function ModalSelect({
                       ? "border-b border-gray-100"
                       : ""
                   }`}
+                  accessibilityRole="button"
+                  accessibilityLabel={item.label}
                 >
                   <Text className="text-base">{item.label}</Text>
                 </TouchableOpacity>

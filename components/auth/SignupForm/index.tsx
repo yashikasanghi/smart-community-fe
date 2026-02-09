@@ -144,6 +144,7 @@ export default function SignupForm() {
           render={({ field }) => (
             <TextInput
               placeholder="First Name"
+              accessibilityLabel="First name"
               {...field}
               onChangeText={field.onChange}
               className="flex-1 border border-gray-300 rounded-xl px-4 py-3 text-base w-40"
@@ -157,6 +158,7 @@ export default function SignupForm() {
           render={({ field }) => (
             <TextInput
               placeholder="Last Name"
+              accessibilityLabel="Last name"
               {...field}
               onChangeText={field.onChange}
               className="flex-1 border border-gray-300 rounded-xl px-4 py-3 text-base w-40"
@@ -179,6 +181,7 @@ export default function SignupForm() {
         render={({ field }) => (
           <TextInput
             placeholder="Contact Number"
+            accessibilityLabel="Contact number"
             keyboardType="number-pad"
             maxLength={10}
             {...field}
@@ -199,6 +202,7 @@ export default function SignupForm() {
         render={({ field }) => (
           <TextInput
             placeholder="Email Address (optional)"
+            accessibilityLabel="Email address"
             autoCapitalize="none"
             keyboardType="email-address"
             {...field}
@@ -224,6 +228,7 @@ export default function SignupForm() {
           render={({ field }) => (
             <TextInput
               placeholder="Pincode"
+              accessibilityLabel="Pincode"
               keyboardType="number-pad"
               maxLength={6}
               {...field}
@@ -272,6 +277,7 @@ export default function SignupForm() {
         render={({ field }) => (
           <TextInput
             placeholder="Address"
+            accessibilityLabel="Address"
             multiline
             numberOfLines={3}
             {...field}
@@ -289,6 +295,7 @@ export default function SignupForm() {
           render={({ field }) => (
             <TextInput
               placeholder="City"
+              accessibilityLabel="City"
               {...field}
               onChangeText={field.onChange}
               className="flex-1 border border-gray-300 rounded-xl px-4 py-3 w-40"
@@ -302,6 +309,7 @@ export default function SignupForm() {
           render={({ field }) => (
             <TextInput
               placeholder="State"
+              accessibilityLabel="State"
               {...field}
               onChangeText={field.onChange}
               className="flex-1 border border-gray-300 rounded-xl px-4 py-3 w-40"
@@ -324,6 +332,7 @@ export default function SignupForm() {
         render={({ field }) => (
           <TextInput
             placeholder="Password"
+            accessibilityLabel="Password"
             secureTextEntry
             {...field}
             onChangeText={field.onChange}

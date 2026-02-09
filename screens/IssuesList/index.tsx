@@ -186,6 +186,10 @@ export default function IssuesList() {
                 className={`flex-row items-center py-3 ${
                   index !== issues.length - 1 ? "border-b border-gray-100" : ""
                 }`}
+                accessibilityRole="button"
+                accessibilityLabel={`Issue: ${issue.shortDescription}. Status: ${toLabel(
+                  issue.status,
+                )}.`}
               >
                 {/* Image */}
                 <Image
@@ -197,6 +201,8 @@ export default function IssuesList() {
                   className="rounded-lg mr-4"
                   style={{ width: 100, height: 100 }}
                   resizeMode="cover"
+                  accessibilityLabel="Issue image"
+                  accessible
                 />
 
                 {/* Info */}

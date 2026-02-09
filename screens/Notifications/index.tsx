@@ -63,6 +63,8 @@ export default function NotificationsScreen() {
                 className={`py-3 ${
                   index !== items.length - 1 ? "border-b border-gray-100" : ""
                 }`}
+                accessibilityRole="button"
+                accessibilityLabel={`Notification: ${n.title}. ${n.read ? "Read" : "Unread"}.`}
               >
                 <View className="flex-row justify-between items-start">
                   <View className="flex-1 pr-3">

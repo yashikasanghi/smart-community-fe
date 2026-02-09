@@ -115,6 +115,7 @@ export default function CreateIssueForm() {
         render={({ field }) => (
           <TextInput
             placeholder="Eg. Street light not working"
+            accessibilityLabel="Short description"
             maxLength={200}
             {...field}
             onChangeText={field.onChange}
@@ -133,6 +134,7 @@ export default function CreateIssueForm() {
         render={({ field }) => (
           <TextInput
             placeholder="Describe the issue in detail"
+            accessibilityLabel="Description"
             multiline
             numberOfLines={4}
             textAlignVertical="top"
@@ -171,6 +173,7 @@ export default function CreateIssueForm() {
         render={({ field }) => (
           <TextInput
             value={field.value.wardName}
+            accessibilityLabel="Ward"
             editable={false}
             className="border border-gray-200 bg-gray-100 rounded-xl px-4 py-3 text-base"
           />
@@ -185,6 +188,7 @@ export default function CreateIssueForm() {
         render={({ field }) => (
           <TextInput
             value={field.value}
+            accessibilityLabel="Pincode"
             editable={false}
             keyboardType="number-pad"
             className="border border-gray-200 bg-gray-100 rounded-xl px-4 py-3 text-base"
@@ -203,6 +207,7 @@ export default function CreateIssueForm() {
         render={({ field }) => (
           <TextInput
             placeholder="Near main gate, sector 4"
+            accessibilityLabel="Location or landmark"
             {...field}
             onChangeText={field.onChange}
             className="border border-gray-300 rounded-xl px-4 py-3 mb-1 text-base"
@@ -217,6 +222,8 @@ export default function CreateIssueForm() {
       <TouchableOpacity
         onPress={pickImage}
         className="border border-dashed border-gray-400 rounded-xl px-4 py-4 items-center justify-center"
+        accessibilityRole="button"
+        accessibilityLabel={selectedImage ? "Change image" : "Upload image"}
       >
         <Text className="text-gray-500">
           {selectedImage ? "Change Image" : "Upload Image"}
@@ -228,6 +235,8 @@ export default function CreateIssueForm() {
           source={{ uri: selectedImage.uri }}
           className="w-full h-40 rounded-xl mt-3"
           resizeMode="cover"
+          accessibilityLabel="Selected issue image"
+          accessible
         />
       )}
 

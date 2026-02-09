@@ -136,6 +136,8 @@ export default function IssueSummaryScreen() {
           <TouchableOpacity
             className=" rounded-2xl mt-6 bg-blue-600"
             onPress={() => routeToCreateIssue()}
+            accessibilityRole="button"
+            accessibilityLabel="Report new issue"
           >
             <View className="flex-row gap-4 rounded-2xl p-4 items-center justify-center">
               <View className="bg-white w-8 h-8 rounded-full items-center justify-center">

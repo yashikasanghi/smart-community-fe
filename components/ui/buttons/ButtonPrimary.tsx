@@ -18,6 +18,9 @@ export default function ButtonPrimary({
       onPress={onPress}
       className={`bg-primary py-3 px-16 shadow-sm my-4 ${cssClass}`}
       disabled={disabled}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityState={{ disabled }}
     >
       <Text className="text-white text-base font-semibold text-center">
         {label}

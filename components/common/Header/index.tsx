@@ -35,7 +35,11 @@ export default function Header({ name = "User" }: { name?: string }) {
           <Text className="text-white text-2xl font-semibold">{name}</Text>
         </View>
 
-        <TouchableOpacity onPress={routeToNotifications}>
+        <TouchableOpacity
+          onPress={routeToNotifications}
+          accessibilityRole="button"
+          accessibilityLabel={`Notifications${count ? `, ${count} unread` : ""}`}
+        >
           <Ionicons name="notifications-outline" size={24} color="white" />
           {count > 0 && (
             <View className="absolute -top-2 -right-2 bg-red-500 rounded-full min-w-[18px] h-[18px] px-1 items-center justify-center">

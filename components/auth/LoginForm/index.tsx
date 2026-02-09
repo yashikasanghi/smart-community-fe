@@ -68,6 +68,7 @@ export default function LoginForm() {
         render={({ field }) => (
           <TextInput
             placeholder="Contact Number"
+            accessibilityLabel="Contact number"
             keyboardType="number-pad"
             maxLength={10}
             {...field}
@@ -86,6 +87,7 @@ export default function LoginForm() {
         render={({ field }) => (
           <TextInput
             placeholder="Password"
+            accessibilityLabel="Password"
             secureTextEntry
             {...field}
             onChangeText={field.onChange}
