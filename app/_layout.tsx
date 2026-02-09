@@ -6,9 +6,12 @@ import { useEffect } from "react";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { ApolloProvider } from "@apollo/client/react";
 import "../global.css";
+import ErrorFallback from "@/components/common/ErrorFallback";
+import { useAppErrorStore } from "@/store/appErrorStore";
 
 export default function RootLayout() {
   const hydrate = useAuthStore((state) => state.hydrate);
+  const hasError = useAppErrorStore((state) => Boolean(state.error));
 
   useEffect(() => {
     hydrate();
@@ -18,6 +21,7 @@ export default function RootLayout() {
       <SafeAreaProvider>
         <StatusBar style="dark" />
         <Stack screenOptions={{ headerShown: false }} />
+        {hasError ? <ErrorFallback /> : null}
       </SafeAreaProvider>
     </ApolloProvider>
   );

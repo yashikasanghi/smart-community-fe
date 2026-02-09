@@ -11,6 +11,7 @@ import { analyticsApi } from "@/services/api";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import BottomTabs from "@/components/navigation/BottomTabs";
 import { useAnalyticsStore } from "@/store/analyticsStore";
+import Loader from "@/components/common/Loader";
 
 type IssueListItem = {
   id: string;
@@ -37,10 +38,14 @@ export default function IssuesList() {
   const isAll =
     status === "ALL" || status === "all" || status == null || status === "";
 
-  const { data } = useQuery<{ myIssuesList: IssueListItem[] }>(MY_ISSUES_LIST, {
-    variables: { status: statusValue },
-    fetchPolicy: "network-only",
-  });
+  const { data, loading } = useQuery<{ myIssuesList: IssueListItem[] }>(
+    MY_ISSUES_LIST,
+    {
+      variables: { status: statusValue },
+      fetchPolicy: "network-only",
+      notifyOnNetworkStatusChange: true,
+    },
+  );
 
   const [summary, setSummary] = useState<string | null>(null);
   const [summaryError, setSummaryError] = useState(false);
@@ -146,7 +151,13 @@ export default function IssuesList() {
         <Header name={user?.firstName} />
 
         {/* Content */}
-        <ScrollView className="px-6 -mt-8" showsVerticalScrollIndicator={false}>
+        {loading && !data ? (
+          <Loader message="Loading issues..." />
+        ) : (
+          <ScrollView
+            className="px-6 -mt-8"
+            showsVerticalScrollIndicator={false}
+          >
           {/* AI Summary */}
           {isAuthority && isAll && summary && !summaryError && (
             <View className="bg-gray-200 rounded-xl px-4 py-3 mb-6">
@@ -207,7 +218,8 @@ export default function IssuesList() {
               </TouchableOpacity>
             ))}
           </View>
-        </ScrollView>
+          </ScrollView>
+        )}
         <BottomTabs />
       </View>
     </ScreenWrapper>
