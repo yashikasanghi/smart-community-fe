@@ -18,12 +18,13 @@ export default function BottomTabs() {
   const pathname = usePathname();
 
   const isAuthority = user?.role === "authority" || user?.role === "AUTHORITY";
-  if (!isAuthority) return null;
+  const isCitizen = user?.role === "citizen" || user?.role === "CITIZEN";
+  if (!isAuthority && !isCitizen) return null;
 
-  const tabs: TabItem[] = [
+  const baseTabs: TabItem[] = [
     {
       key: "home",
-      label: "My Home",
+      label: "Home",
       icon: "home-outline",
       onPress: () => routeToIssueSummary(),
       isActive: (path) => path.includes("issues-summary"),
@@ -35,14 +36,20 @@ export default function BottomTabs() {
       onPress: () => routeToIssuesList("ALL"),
       isActive: (path) => path.includes("issues-list"),
     },
-    {
-      key: "dashboard",
-      label: "Dashboard",
-      icon: "analytics-outline",
-      onPress: () => routeToDashboard(),
-      isActive: (path) => path.includes("dashboard"),
-    },
   ];
+
+  const tabs: TabItem[] = isAuthority
+    ? [
+        ...baseTabs,
+        {
+          key: "dashboard",
+          label: "Dashboard",
+          icon: "analytics-outline",
+          onPress: () => routeToDashboard(),
+          isActive: (path) => path.includes("dashboard"),
+        },
+      ]
+    : baseTabs;
 
   return (
     <View className="absolute bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-6 py-3 flex-row justify-between">

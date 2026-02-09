@@ -7,25 +7,33 @@ import { routeToNotifications } from "@/utils/routes";
 import { useAuthStore } from "@/store/authStore";
 
 export default function Header({ name = "User" }: { name?: string }) {
-  const { count, setCount, lastFetchedAt, setLastFetchedAt } =
-    useNotificationsStore();
+  const { count, setCount, setLastFetchedAt } = useNotificationsStore();
   const user = useAuthStore((state) => state.user);
 
   useEffect(() => {
     if (!user) return;
-    const now = Date.now();
-    if (lastFetchedAt && now - lastFetchedAt < 30000) return;
+
+    let isMounted = true;
+
     const fetchCount = async () => {
       try {
         const value = await fetchNotificationCount();
+        if (!isMounted) return;
         setCount(value ?? 0);
         setLastFetchedAt(Date.now());
       } catch {
         // ignore count failures
       }
     };
+
     fetchCount();
-  }, [lastFetchedAt, setCount, setLastFetchedAt, user]);
+    const intervalId = setInterval(fetchCount, 15000);
+
+    return () => {
+      isMounted = false;
+      clearInterval(intervalId);
+    };
+  }, [setCount, setLastFetchedAt, user]);
 
   return (
     <View className="bg-blue-600 px-6 pt-8 pb-10 rounded-b-3xl">

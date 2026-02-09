@@ -53,23 +53,27 @@ export default function IssuesList() {
   const fetchAuthoritySummary = useCallback(async () => {
     if (!isAuthority || !isAll) return;
     try {
-      const res = await analyticsApi.post("/analytics", {
-        query: `
-          query AuthorityIssuesSummary($status: IssueStatus) {
-            authorityIssuesSummary(status: $status) {
-              summary
-              issues {
-                id
-                shortDescription
-                status
-                images
-                createdAt
+      const res = await analyticsApi.post(
+        "/analytics",
+        {
+          query: `
+            query AuthorityIssuesSummary($status: IssueStatus) {
+              authorityIssuesSummary(status: $status) {
+                summary
+                issues {
+                  id
+                  shortDescription
+                  status
+                  images
+                  createdAt
+                }
               }
             }
-          }
-        `,
-        variables: { status: null },
-      });
+          `,
+          variables: { status: null },
+        },
+        { skipAppError: true } as any,
+      );
       const payload = res.data?.data?.authorityIssuesSummary;
       setSummary(payload?.summary ?? null);
       setSummaryError(false);
