@@ -5,9 +5,10 @@ import {
   routeToRoleSelection,
   routeToSignup,
 } from "@/utils/routes";
+import getProfile from "@/services/profile";
 import { Controller, useForm } from "react-hook-form";
 import { Text, TextInput, View } from "react-native";
-import loginService from "@/services/login";
+import { useAuthStore } from "@/store/authStore";
 
 type FormData = {
   contactNumber: string;
@@ -15,6 +16,8 @@ type FormData = {
 };
 
 export default function LoginForm() {
+  const login = useAuthStore((state) => state.login);
+  const setUser = useAuthStore((state) => state.setUser);
   const {
     control,
     handleSubmit,
@@ -34,16 +37,22 @@ export default function LoginForm() {
         password: data.password,
       };
 
-      const response = await loginService(payload);
-
-      if (response) {
-        // If role not selected yet
-        if (!response.user?.role) {
-          routeToRoleSelection();
-          return;
+      await login(payload);
+      let { user } = useAuthStore.getState();
+      if (!user?.role) {
+        try {
+          const profile = await getProfile();
+          setUser(profile);
+          user = profile;
+        } catch {
+          // ignore and fallback to role selection
         }
-        routeToIssueSummary();
       }
+      if (!user?.role) {
+        routeToRoleSelection();
+        return;
+      }
+      routeToIssueSummary();
     } catch (err) {
       console.error("Login error:", err);
     }

@@ -4,8 +4,9 @@ import BottomTabs from "@/components/navigation/BottomTabs";
 import { useProfile } from "@/hooks/useProfile";
 import { analyticsApi } from "@/services/api";
 import { useAnalyticsStore } from "@/store/analyticsStore";
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ScrollView, Text, View } from "react-native";
+import Loader from "@/components/common/Loader";
 
 export default function DashboardScreen() {
   const { user } = useProfile();
@@ -25,6 +26,7 @@ export default function DashboardScreen() {
 
   const inFlightRef = useRef(false);
   const lastRequestedRef = useRef<string | null>(null);
+  const [isAnalyticsLoading, setIsAnalyticsLoading] = useState(false);
 
   useEffect(() => {
     if (!isAuthority) return;
@@ -37,6 +39,7 @@ export default function DashboardScreen() {
     if (inFlightRef.current || lastRequestedRef.current === refreshKey) return;
     inFlightRef.current = true;
     lastRequestedRef.current = refreshKey;
+    setIsAnalyticsLoading(true);
     (async () => {
       try {
         const res = await analyticsApi.post("/analytics", {
@@ -85,6 +88,7 @@ export default function DashboardScreen() {
         setIssueCategoryCounts([]);
       } finally {
         inFlightRef.current = false;
+        setIsAnalyticsLoading(false);
         setLastFetchedIssuesUpdatedAt(refreshKey);
       }
     })();
@@ -162,14 +166,17 @@ export default function DashboardScreen() {
     <ScreenWrapper cssClass="p-0">
       <View className="flex-1 w-full bg-[#F6F9FC]">
         <Header name={user?.firstName} />
-        <ScrollView
-          className="flex-1 px-6 mt-8"
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ paddingBottom: 40 }}
-        >
-          <Text className="text-gray-900 font-semibold text-lg mb-4">
-            Ward Health
-          </Text>
+        {isAnalyticsLoading ? (
+          <Loader message="Loading analytics..." />
+        ) : (
+          <ScrollView
+            className="flex-1 px-6 mt-8"
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={{ paddingBottom: 40 }}
+          >
+            <Text className="text-gray-900 font-semibold text-lg mb-4">
+              Ward Health
+            </Text>
 
           <View className="bg-white rounded-2xl px-5 py-5 mb-6">
             <Text className="text-gray-500 text-sm">Health Score</Text>
@@ -249,7 +256,8 @@ export default function DashboardScreen() {
               </Text>
             </View>
           </View>
-        </ScrollView>
+          </ScrollView>
+        )}
       </View>
       <BottomTabs />
     </ScreenWrapper>

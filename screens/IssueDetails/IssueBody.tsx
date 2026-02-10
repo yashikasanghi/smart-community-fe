@@ -1,4 +1,3 @@
-import ButtonPrimary from "@/components/ui/buttons/ButtonPrimary";
 import { toImageUrl } from "@/helpers/common";
 import { IssueDetailsData } from "@/types/issues.types";
 import { memo } from "react";
@@ -59,6 +58,41 @@ type ActionCardProps = {
   variant: "success" | "danger";
 };
 
+type FilledButtonProps = {
+  label: string;
+  onPress: () => void;
+  disabled?: boolean;
+  accessibilityLabel?: string;
+};
+
+const FilledButton = memo(function FilledButton({
+  label,
+  onPress,
+  disabled = false,
+  accessibilityLabel,
+}: FilledButtonProps) {
+  return (
+    <TouchableOpacity
+      onPress={onPress}
+      disabled={disabled}
+      className={`flex-1 py-3 rounded-full ${
+        disabled ? "bg-blue-200" : "bg-blue-600"
+      }`}
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel ?? label}
+      accessibilityState={{ disabled }}
+    >
+      <Text
+        className={`text-center font-semibold ${
+          disabled ? "text-blue-100" : "text-white"
+        }`}
+      >
+        {label}
+      </Text>
+    </TouchableOpacity>
+  );
+});
+
 const ActionCard = memo(function ActionCard({
   title,
   description,
@@ -79,11 +113,11 @@ const ActionCard = memo(function ActionCard({
       <Text className="text-gray-800 font-medium mb-1">{title}</Text>
       <Text className="text-gray-700 mb-3">{description}</Text>
       <View className="flex-row items-center gap-3">
-        <ButtonPrimary
+        <FilledButton
           label={primaryLabel}
           onPress={onPrimary}
           disabled={disabled}
-          cssClass="rounded-full flex-1 px-0 my-0"
+          accessibilityLabel={primaryLabel}
         />
         <OutlinedButton
           label={secondaryLabel}

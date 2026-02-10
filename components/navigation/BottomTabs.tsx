@@ -3,12 +3,17 @@ import { usePathname } from "expo-router";
 import { Text, TouchableOpacity, View } from "react-native";
 import { routeToIssueSummary, routeToIssuesList } from "@/utils/routes";
 import { routeToDashboard } from "@/utils/routes";
+import { routeToProfile } from "@/utils/routes";
 import { useProfile } from "@/hooks/useProfile";
 
 type TabItem = {
-  key: "home" | "issues" | "dashboard";
+  key: "home" | "issues" | "dashboard" | "profile";
   label: string;
-  icon: "home-outline" | "list-outline" | "analytics-outline";
+  icon:
+    | "home-outline"
+    | "list-outline"
+    | "analytics-outline"
+    | "person-outline";
   onPress: () => void;
   isActive: (path: string) => boolean;
 };
@@ -38,6 +43,14 @@ export default function BottomTabs() {
     },
   ];
 
+  const profileTab: TabItem = {
+    key: "profile",
+    label: "Profile",
+    icon: "person-outline",
+    onPress: () => routeToProfile(),
+    isActive: (path) => path.includes("profile"),
+  };
+
   const tabs: TabItem[] = isAuthority
     ? [
         ...baseTabs,
@@ -48,8 +61,9 @@ export default function BottomTabs() {
           onPress: () => routeToDashboard(),
           isActive: (path) => path.includes("dashboard"),
         },
+        profileTab,
       ]
-    : baseTabs;
+    : [...baseTabs, profileTab];
 
   return (
     <View className="absolute bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-6 py-3 flex-row justify-between">

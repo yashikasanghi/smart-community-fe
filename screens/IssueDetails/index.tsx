@@ -179,6 +179,13 @@ const useIssueActions = (
               text,
             },
           },
+          refetchQueries: [
+            {
+              query: ISSUE_DETAILS,
+              variables: { id: issueId },
+            },
+          ],
+          awaitRefetchQueries: true,
           update: (cache, { data: mutationData }) => {
             const newComment = mutationData?.addComment;
             if (!newComment) return;

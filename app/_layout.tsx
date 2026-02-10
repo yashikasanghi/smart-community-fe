@@ -8,10 +8,12 @@ import { ApolloProvider } from "@apollo/client/react";
 import "../global.css";
 import ErrorFallback from "@/components/common/ErrorFallback";
 import { useAppErrorStore } from "@/store/appErrorStore";
+import { useNotificationStream } from "@/hooks/useNotificationStream";
 
 export default function RootLayout() {
   const hydrate = useAuthStore((state) => state.hydrate);
   const hasError = useAppErrorStore((state) => Boolean(state.error));
+  useNotificationStream();
 
   useEffect(() => {
     hydrate();
