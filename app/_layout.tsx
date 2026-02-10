@@ -9,6 +9,7 @@ import "../global.css";
 import ErrorFallback from "@/components/common/ErrorFallback";
 import { useAppErrorStore } from "@/store/appErrorStore";
 import { useNotificationStream } from "@/hooks/useNotificationStream";
+import { installGlobalErrorHandler } from "@/utils/jsnotify";
 
 export default function RootLayout() {
   const hydrate = useAuthStore((state) => state.hydrate);
@@ -17,6 +18,7 @@ export default function RootLayout() {
 
   useEffect(() => {
     hydrate();
+    installGlobalErrorHandler();
   }, []);
   return (
     <ApolloProvider client={apolloClient}>

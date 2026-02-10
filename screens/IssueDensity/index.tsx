@@ -6,12 +6,28 @@ import { useProfile } from "@/hooks/useProfile";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ScrollView, Text, View } from "react-native";
 import Loader from "@/components/common/Loader";
+import { normalizeRole } from "@/helpers/issueDetails.helper";
 
 type Hotspot = { wardId: string; count: number };
 
 export default function IssueDensityScreen() {
   const { user } = useProfile();
-  const isAuthority = user?.role === "authority" || user?.role === "AUTHORITY";
+  const isAuthority = normalizeRole(user?.role) === "AUTHORITY";
+  if (!isAuthority) {
+    return (
+      <ScreenWrapper cssClass="p-0">
+        <View className="flex-1 w-full bg-[#F6F9FC] items-center justify-center px-6">
+          <Text className="text-gray-900 text-lg font-semibold mb-2">
+            Access restricted
+          </Text>
+          <Text className="text-gray-500 text-sm text-center">
+            Issue density is available to authority users only.
+          </Text>
+        </View>
+        <BottomTabs />
+      </ScreenWrapper>
+    );
+  }
   const [total, setTotal] = useState(0);
   const [avgResolutionHours, setAvgResolutionHours] = useState(0);
   const [hotspots, setHotspots] = useState<Hotspot[]>([]);

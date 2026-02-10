@@ -2,9 +2,9 @@ import { Ionicons } from "@expo/vector-icons";
 import { usePathname } from "expo-router";
 import { Text, TouchableOpacity, View } from "react-native";
 import { routeToIssueSummary, routeToIssuesList } from "@/utils/routes";
-import { routeToDashboard } from "@/utils/routes";
-import { routeToProfile } from "@/utils/routes";
+import { routeToDashboard, routeToProfile } from "@/utils/routes";
 import { useProfile } from "@/hooks/useProfile";
+import { normalizeRole } from "@/helpers/issueDetails.helper";
 
 type TabItem = {
   key: "home" | "issues" | "dashboard" | "profile";
@@ -22,8 +22,9 @@ export default function BottomTabs() {
   const { user } = useProfile();
   const pathname = usePathname();
 
-  const isAuthority = user?.role === "authority" || user?.role === "AUTHORITY";
-  const isCitizen = user?.role === "citizen" || user?.role === "CITIZEN";
+  const role = normalizeRole(user?.role);
+  const isAuthority = role === "AUTHORITY";
+  const isCitizen = role === "CITIZEN";
   if (!isAuthority && !isCitizen) return null;
 
   const baseTabs: TabItem[] = [

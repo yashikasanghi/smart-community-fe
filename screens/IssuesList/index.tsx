@@ -12,6 +12,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import BottomTabs from "@/components/navigation/BottomTabs";
 import { useAnalyticsStore } from "@/store/analyticsStore";
 import Loader from "@/components/common/Loader";
+import { normalizeRole } from "@/helpers/issueDetails.helper";
 
 type IssueListItem = {
   id: string;
@@ -34,7 +35,7 @@ export default function IssuesList() {
       ? status
       : null;
 
-  const isAuthority = user?.role === "authority" || user?.role === "AUTHORITY";
+  const isAuthority = normalizeRole(user?.role) === "AUTHORITY";
   const isAll =
     status === "ALL" || status === "all" || status == null || status === "";
 
@@ -108,7 +109,7 @@ export default function IssuesList() {
   }, [latestUpdatedAt, setIssuesUpdatedAt]);
 
   const toLabel = (value: string) => {
-    switch (value) {
+    switch (value.toLocaleLowerCase()) {
       case "open":
         return "Open";
       case "in_progress":
@@ -162,72 +163,73 @@ export default function IssuesList() {
             className="px-6 -mt-8"
             showsVerticalScrollIndicator={false}
           >
-          {/* AI Summary */}
-          {isAuthority && isAll && summary && !summaryError && (
-            <View className="bg-gray-200 rounded-xl px-4 py-3 mb-6">
-              <Text className="text-gray-700 text-sm">
-                <Text className="font-semibold">AI Summary:</Text>{" "}
-                {summary}
-              </Text>
+            {/* AI Summary */}
+            {isAuthority && isAll && summary && !summaryError && (
+              <View className="bg-gray-200 rounded-xl px-4 py-3 mb-6">
+                <Text className="text-gray-700 text-sm">
+                  <Text className="font-semibold">AI Summary:</Text> {summary}
+                </Text>
+              </View>
+            )}
+
+            {/* Issues Card */}
+            <View
+              className="bg-white rounded-3xl px-4 py-4 mb-10"
+              style={{
+                shadowColor: "#000",
+                shadowOffset: { width: 0, height: 6 },
+                shadowOpacity: 0.1,
+                shadowRadius: 14,
+                elevation: 8,
+              }}
+            >
+              {issues.map((issue, index) => (
+                <TouchableOpacity
+                  key={issue.id}
+                  onPress={() => routeToIssueDetails(issue.id)}
+                  className={`flex-row items-center py-3 ${
+                    index !== issues.length - 1
+                      ? "border-b border-gray-100"
+                      : ""
+                  }`}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Issue: ${issue.shortDescription}. Status: ${toLabel(
+                    issue.status,
+                  )}.`}
+                >
+                  {/* Image */}
+                  <Image
+                    source={
+                      toImageUrl(issue.images?.[0])
+                        ? { uri: toImageUrl(issue.images?.[0]) as string }
+                        : require("@/assets/images/default-issue-img.jpg")
+                    }
+                    className="rounded-lg mr-4"
+                    style={{ width: 100, height: 100 }}
+                    resizeMode="cover"
+                    accessibilityLabel="Issue image"
+                    accessible
+                  />
+
+                  {/* Info */}
+                  <View className="flex-1">
+                    <Text className="text-gray-900 font-medium">
+                      {issue.shortDescription}
+                    </Text>
+                    <Text className="text-gray-400 text-xs mt-1">
+                      {formatCreatedOn(issue.createdAt)}
+                    </Text>
+                  </View>
+
+                  {/* Status */}
+                  <View className="bg-blue-600 px-3 py-2 rounded-full">
+                    <Text className="text-white text-xs font-semibold">
+                      {toLabel(issue.status)}
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+              ))}
             </View>
-          )}
-
-          {/* Issues Card */}
-          <View
-            className="bg-white rounded-3xl px-4 py-4 mb-10"
-            style={{
-              shadowColor: "#000",
-              shadowOffset: { width: 0, height: 6 },
-              shadowOpacity: 0.1,
-              shadowRadius: 14,
-              elevation: 8,
-            }}
-          >
-            {issues.map((issue, index) => (
-              <TouchableOpacity
-                key={issue.id}
-                onPress={() => routeToIssueDetails(issue.id)}
-                className={`flex-row items-center py-3 ${
-                  index !== issues.length - 1 ? "border-b border-gray-100" : ""
-                }`}
-                accessibilityRole="button"
-                accessibilityLabel={`Issue: ${issue.shortDescription}. Status: ${toLabel(
-                  issue.status,
-                )}.`}
-              >
-                {/* Image */}
-                <Image
-                  source={
-                    toImageUrl(issue.images?.[0])
-                      ? { uri: toImageUrl(issue.images?.[0]) as string }
-                      : require("@/assets/images/default-issue-img.jpg")
-                  }
-                  className="rounded-lg mr-4"
-                  style={{ width: 100, height: 100 }}
-                  resizeMode="cover"
-                  accessibilityLabel="Issue image"
-                  accessible
-                />
-
-                {/* Info */}
-                <View className="flex-1">
-                  <Text className="text-gray-900 font-medium">
-                    {issue.shortDescription}
-                  </Text>
-                  <Text className="text-gray-400 text-xs mt-1">
-                    {formatCreatedOn(issue.createdAt)}
-                  </Text>
-                </View>
-
-                {/* Status */}
-                <View className="bg-red-500 px-3 py-1 rounded-full">
-                  <Text className="text-white text-xs font-semibold">
-                    {toLabel(issue.status)}
-                  </Text>
-                </View>
-              </TouchableOpacity>
-            ))}
-          </View>
           </ScrollView>
         )}
         <BottomTabs />
