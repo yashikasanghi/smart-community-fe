@@ -30,6 +30,9 @@ export default function IssueStatusSummary({
         className={`w-10 h-10 rounded-full items-center justify-center mr-3 ${cssClass} ${
           iconDisabled ? "opacity-50" : ""
         }`}
+        accessibilityRole="button"
+        accessibilityLabel={`${status} issues: ${count}`}
+        accessibilityState={{ disabled: iconDisabled }}
       >
         <Ionicons
           name={iconDetails?.name}

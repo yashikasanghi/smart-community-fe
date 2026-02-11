@@ -12,7 +12,11 @@ export default function TextLink({
   cssClass,
 }: Readonly<Props>) {
   return (
-    <Pressable>
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="link"
+      accessibilityLabel={label}
+    >
       <Text
         className={`text-primary font-medium ${cssClass}`}
         onPress={onPress}

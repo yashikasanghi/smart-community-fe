@@ -6,10 +6,15 @@ let profilePromise: Promise<any> | null = null;
 
 export function useProfile() {
   const user = useAuthStore((state) => state.user);
+  const accessToken = useAuthStore((state) => state.accessToken);
+  const profileLoaded = useAuthStore((state) => state.profileLoaded);
 
   const setUser = useAuthStore((state) => state.setUser);
   const fetchProfile = async () => {
-    if (user) {
+    if (!accessToken) {
+      return null;
+    }
+    if (user && profileLoaded) {
       return user;
     }
     if (profilePromise) {
@@ -31,10 +36,10 @@ export function useProfile() {
   };
 
   useEffect(() => {
-    if (!user) {
+    if ((!user || !profileLoaded) && accessToken) {
       fetchProfile();
     }
-  }, [user]);
+  }, [user, accessToken, profileLoaded]);
 
   return { user };
 }

@@ -8,7 +8,12 @@ export default function ErrorFallback() {
   if (!error) return null;
 
   return (
-    <View className="absolute inset-0 z-50" pointerEvents="box-none">
+    <View
+      className="absolute inset-0 z-50"
+      pointerEvents="box-none"
+      accessibilityRole="alert"
+      accessibilityLabel="Something went wrong"
+    >
       <View className="absolute inset-0 bottom-20 bg-white/95" />
       <View className="flex-1 items-center justify-center px-6 pb-20">
         <View className="bg-white border border-red-100 rounded-2xl px-6 py-5 w-full max-w-[420px] shadow-lg">

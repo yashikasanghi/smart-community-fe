@@ -90,3 +90,15 @@ export const markNotificationRead = async (
   );
   return Boolean(data.markNotificationRead);
 };
+
+export const markNotificationsReadByIssue = async (issueId: string) => {
+  const data = await request<{ markNotificationsReadByIssue: boolean }>(
+    `
+      mutation MarkNotificationsReadByIssue($issueId: ID!) {
+        markNotificationsReadByIssue(issueId: $issueId)
+      }
+    `,
+    { issueId },
+  );
+  return Boolean(data.markNotificationsReadByIssue);
+};

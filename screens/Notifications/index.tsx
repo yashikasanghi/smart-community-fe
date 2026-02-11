@@ -1,9 +1,11 @@
 import Header from "@/components/common/Header";
 import { ScreenWrapper } from "@/components/common/wrappers/ScreenWrapper";
 import BottomTabs from "@/components/navigation/BottomTabs";
+import Title from "@/components/ui/titles/Title";
 import {
   fetchNotifications,
   markNotificationRead,
+  markNotificationsReadByIssue,
 } from "@/services/notifications";
 import { useNotificationsStore } from "@/store/notificationsStore";
 import { routeToIssueDetails } from "@/utils/routes";
@@ -41,10 +43,25 @@ export default function NotificationsScreen() {
     }
   };
 
+  const markIssueRead = async (issueId: string) => {
+    try {
+      await markNotificationsReadByIssue(issueId);
+      const updated = items.map((n) =>
+        n.issueId === issueId ? { ...n, read: true } : n,
+      );
+      setItems(updated);
+      const unread = updated.filter((n) => !n.read).length;
+      setCount(unread);
+    } catch {
+      // ignore
+    }
+  };
+
   return (
     <ScreenWrapper cssClass="p-0">
       <View className="flex-1 w-full bg-[#F6F9FC]">
-        <Header name="Notifications" />
+        <Header name="Notifications" flag={false} />
+
         <ScrollView className="px-6 -mt-8" showsVerticalScrollIndicator={false}>
           <View className="bg-white rounded-3xl px-4 py-4 mb-10">
             {items.length === 0 && (
@@ -56,13 +73,20 @@ export default function NotificationsScreen() {
               <TouchableOpacity
                 key={n.id || n._id || index}
                 onPress={() => {
+                  const issueId = n.issueId;
                   const id = n.id || n._id;
-                  if (id) markRead(id);
+                  if (issueId) {
+                    markIssueRead(issueId);
+                  } else if (id) {
+                    markRead(id);
+                  }
                   routeToIssueDetails(n.issueId);
                 }}
                 className={`py-3 ${
                   index !== items.length - 1 ? "border-b border-gray-100" : ""
                 }`}
+                accessibilityRole="button"
+                accessibilityLabel={`Notification: ${n.title}. ${n.read ? "Read" : "Unread"}.`}
               >
                 <View className="flex-row justify-between items-start">
                   <View className="flex-1 pr-3">

@@ -4,12 +4,29 @@ import BottomTabs from "@/components/navigation/BottomTabs";
 import { useProfile } from "@/hooks/useProfile";
 import { analyticsApi } from "@/services/api";
 import { useAnalyticsStore } from "@/store/analyticsStore";
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ScrollView, Text, View } from "react-native";
+import Loader from "@/components/common/Loader";
+import { normalizeRole } from "@/helpers/issueDetails.helper";
+import BarChart from "@/components/common/charts/BarChart";
 
 export default function DashboardScreen() {
   const { user } = useProfile();
-  const isAuthority = user?.role === "authority" || user?.role === "AUTHORITY";
+  const isAuthority = normalizeRole(user?.role) === "AUTHORITY";
+
+  const wardId = user?.authorityAssignment?.wardId ?? user?.location?.wardId;
+
+  const [topIssues, setTopIssues] = useState<
+    {
+      issueType: string;
+      streetName: string;
+      representativeAddress: string;
+      affectedUserCount: number;
+      summary: string;
+    }[]
+  >([]);
+  const [topIssuesSummary, setTopIssuesSummary] = useState("");
+  const [topIssuesError, setTopIssuesError] = useState(false);
 
   const {
     wardHealthScore,
@@ -25,23 +42,36 @@ export default function DashboardScreen() {
 
   const inFlightRef = useRef(false);
   const lastRequestedRef = useRef<string | null>(null);
+  const [isAnalyticsLoading, setIsAnalyticsLoading] = useState(false);
 
   useEffect(() => {
-    if (!isAuthority) return;
+    if (!wardId) {
+      setTopIssues([]);
+      return;
+    }
+    setTopIssuesError(false);
+  }, [wardId]);
+
+  useEffect(() => {
+    if (!isAuthority || !wardId) return;
     const refreshKey = issuesUpdatedAt ?? "init";
     const shouldRefresh =
       !wardHealthScore ||
       !issueDensitySummary ||
+      topIssues.length === 0 ||
       refreshKey !== lastFetchedIssuesUpdatedAt;
     if (!shouldRefresh) return;
     if (inFlightRef.current || lastRequestedRef.current === refreshKey) return;
     inFlightRef.current = true;
     lastRequestedRef.current = refreshKey;
+    setIsAnalyticsLoading(true);
     (async () => {
       try {
-        const res = await analyticsApi.post("/analytics", {
-          query: `
-            query DashboardAnalytics {
+        const res = await analyticsApi.post(
+          `/analytics?ts=${Date.now()}`,
+          {
+            query: `
+            query DashboardAnalytics($wardId: ID!) {
               wardHealthScore {
                 score
                 total
@@ -60,11 +90,29 @@ export default function DashboardScreen() {
                   count
                 }
               }
+              topIssuesByWard(wardId: $wardId) {
+                summary
+                topIssues {
+                  issueType
+                  streetName
+                  representativeAddress
+                  affectedUserCount
+                  summary
+                }
+              }
             }
           `,
-        });
+            variables: { wardId },
+          },
+          { headers: { "Cache-Control": "no-cache" } },
+        );
+        if (res.data?.errors?.length) {
+          throw new Error(res.data.errors[0]?.message || "Analytics error");
+        }
         const health = res.data?.data?.wardHealthScore;
         const density = res.data?.data?.issueDensity;
+        const topResult = res.data?.data?.topIssuesByWard ?? null;
+        const top = topResult?.topIssues ?? [];
         setWardHealthScore(
           health
             ? {
@@ -79,12 +127,21 @@ export default function DashboardScreen() {
         );
         setIssueDensitySummary(density?.summary ?? null);
         setIssueCategoryCounts(density?.categoryCounts ?? []);
+        setTopIssues(top);
+        setTopIssuesError(false);
+        if (topResult?.summary) {
+          setTopIssuesSummary(topResult.summary);
+        }
       } catch {
         setWardHealthScore(null);
         setIssueDensitySummary(null);
         setIssueCategoryCounts([]);
+        setTopIssues([]);
+        setTopIssuesError(true);
+        setTopIssuesSummary("");
       } finally {
         inFlightRef.current = false;
+        setIsAnalyticsLoading(false);
         setLastFetchedIssuesUpdatedAt(refreshKey);
       }
     })();
@@ -98,6 +155,8 @@ export default function DashboardScreen() {
     setIssueDensitySummary,
     setWardHealthScore,
     wardHealthScore,
+    topIssues.length,
+    wardId,
   ]);
 
   const score = wardHealthScore?.score ?? 0;
@@ -158,98 +217,159 @@ export default function DashboardScreen() {
     total,
   ]);
 
+  const topIssueChartData = useMemo(
+    () =>
+      topIssues.map((item) => ({
+        label: `${item.issueType?.toLowerCase().replace(/_/g, " ")} on ${item.streetName}`,
+        value: item.affectedUserCount,
+      })),
+    [topIssues],
+  );
+
+  if (!isAuthority) {
+    return (
+      <ScreenWrapper cssClass="p-0">
+        <View className="flex-1 w-full bg-[#F6F9FC] items-center justify-center px-6">
+          <Text className="text-gray-900 text-lg font-semibold mb-2">
+            Access restricted
+          </Text>
+          <Text className="text-gray-500 text-sm text-center">
+            This dashboard is available to authority users only.
+          </Text>
+        </View>
+        <BottomTabs />
+      </ScreenWrapper>
+    );
+  }
+
   return (
     <ScreenWrapper cssClass="p-0">
       <View className="flex-1 w-full bg-[#F6F9FC]">
         <Header name={user?.firstName} />
-        <ScrollView
-          className="flex-1 px-6 mt-8"
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ paddingBottom: 40 }}
-        >
-          <Text className="text-gray-900 font-semibold text-lg mb-4">
-            Ward Health
-          </Text>
-
-          <View className="bg-white rounded-2xl px-5 py-5 mb-6">
-            <Text className="text-gray-500 text-sm">Health Score</Text>
-            <Text className={`text-4xl font-bold mt-1 ${scoreColor}`}>
-              {score}
-              <Text className="text-gray-400 text-lg">/100</Text>
+        {isAnalyticsLoading ? (
+          <Loader message="Loading analytics..." />
+        ) : (
+          <ScrollView
+            className="flex-1 px-6 mt-8"
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={{ paddingBottom: 40 }}
+          >
+            <Text className="text-gray-900 font-semibold text-lg mb-4">
+              Ward Health
             </Text>
 
-            <View className="h-3 bg-gray-100 rounded-full mt-4 overflow-hidden">
-              <View
-                className="h-full bg-blue-600"
-                style={{ width: `${score}%` }}
-              />
-            </View>
-
-            <View className="flex-row justify-between mt-4">
-              <View>
-                <Text className="text-gray-500 text-xs">Total Issues</Text>
-                <Text className="text-gray-900 font-semibold">{total}</Text>
-              </View>
-              <View>
-                <Text className="text-gray-500 text-xs">Resolution Rate</Text>
-                <Text className="text-gray-900 font-semibold">
-                  {resolutionPct}%
-                </Text>
-              </View>
-              <View>
-                <Text className="text-gray-500 text-xs">Avg Resolution</Text>
-                <Text className="text-gray-900 font-semibold">
-                  {avgResolutionHours.toFixed(1)}h
-                </Text>
-              </View>
-            </View>
-            <View className="bg-gray-100 rounded-xl px-4 py-3 mt-4">
-              <Text className="text-gray-700 text-sm">
-                <Text className="font-semibold">AI Summary:</Text>{" "}
-                {displayHealthSummary ?? "Generating insight..."}
+            <View className="bg-white rounded-2xl px-5 py-5 mb-6">
+              <Text className="text-gray-500 text-sm">Health Score</Text>
+              <Text className={`text-4xl font-bold mt-1 ${scoreColor}`}>
+                {score}
+                <Text className="text-gray-400 text-lg">/100</Text>
               </Text>
-            </View>
-          </View>
 
-          <View className="bg-white rounded-2xl px-5 py-5 mb-6">
-            <Text className="text-gray-900 font-semibold mb-3">
-              Issue Categories
-            </Text>
-            {categoryCounts.map((item) => (
-              <View key={item.category} className="mb-3">
-                <View className="flex-row justify-between mb-1">
-                  <Text className="text-gray-600 text-xs">
-                    {toCategoryLabel(item.category)}
-                  </Text>
-                  <Text className="text-gray-500 text-xs">
-                    {item.count ?? 0}
+              <View className="h-3 bg-gray-100 rounded-full mt-4 overflow-hidden">
+                <View
+                  className="h-full bg-blue-600"
+                  style={{ width: `${score}%` }}
+                />
+              </View>
+
+              <View className="flex-row justify-between mt-4">
+                <View>
+                  <Text className="text-gray-500 text-xs">Total Issues</Text>
+                  <Text className="text-gray-900 font-semibold">{total}</Text>
+                </View>
+                <View>
+                  <Text className="text-gray-500 text-xs">Resolution Rate</Text>
+                  <Text className="text-gray-900 font-semibold">
+                    {resolutionPct}%
                   </Text>
                 </View>
-                <View className="h-2 bg-gray-100 rounded-full overflow-hidden">
-                  <View
-                    className="bg-blue-500 h-full"
-                    style={{
-                      width: total
-                        ? `${((item.count ?? 0) / total) * 100}%`
-                        : "0%",
-                    }}
-                  />
+                <View>
+                  <Text className="text-gray-500 text-xs">Avg Resolution</Text>
+                  <Text className="text-gray-900 font-semibold">
+                    {avgResolutionHours.toFixed(1)}h
+                  </Text>
                 </View>
               </View>
-            ))}
-            {!categoryCounts.length && (
-              <Text className="text-gray-500 text-xs mb-2">
-                No category data available.
-              </Text>
-            )}
-            <View className="bg-gray-100 rounded-xl px-4 py-3 mt-2">
-              <Text className="text-gray-700 text-sm">
-                <Text className="font-semibold">AI Summary:</Text>{" "}
-                {densitySummary ?? "Generating insight..."}
-              </Text>
+              <View className="bg-gray-100 rounded-xl px-4 py-3 mt-4">
+                <Text className="text-gray-700 text-sm">
+                  <Text className="font-semibold">AI Summary:</Text>{" "}
+                  {displayHealthSummary ?? "Generating insight..."}
+                </Text>
+              </View>
             </View>
-          </View>
-        </ScrollView>
+
+            <View className="bg-white rounded-2xl px-5 py-5 mb-6">
+              <Text className="text-gray-900 font-semibold mb-3">
+                Issue Categories
+              </Text>
+              {categoryCounts.map((item) => (
+                <View key={item.category} className="mb-3">
+                  <View className="flex-row justify-between mb-1">
+                    <Text className="text-gray-600 text-xs">
+                      {toCategoryLabel(item.category)}
+                    </Text>
+                    <Text className="text-gray-500 text-xs">
+                      {item.count ?? 0}
+                    </Text>
+                  </View>
+                  <View className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                    <View
+                      className="bg-blue-500 h-full"
+                      style={{
+                        width: total
+                          ? `${((item.count ?? 0) / total) * 100}%`
+                          : "0%",
+                      }}
+                    />
+                  </View>
+                </View>
+              ))}
+              {!categoryCounts.length && (
+                <Text className="text-gray-500 text-xs mb-2">
+                  No category data available.
+                </Text>
+              )}
+              <View className="bg-gray-100 rounded-xl px-4 py-3 mt-2">
+                <Text className="text-gray-700 text-sm">
+                  <Text className="font-semibold">AI Summary:</Text>{" "}
+                  {densitySummary ?? "Generating insight..."}
+                </Text>
+              </View>
+            </View>
+
+            <View className="mb-6">
+              <Text className="text-gray-900 font-semibold mb-3">
+                Top Issues by Affected Users
+              </Text>
+              {isAnalyticsLoading ? (
+                <Loader message="Loading top issues..." />
+              ) : topIssuesError ? (
+                <View className="bg-white rounded-2xl px-5 py-5">
+                  <Text className="text-gray-500 text-sm">
+                    Unable to load top issues right now.
+                  </Text>
+                </View>
+              ) : topIssues.length === 0 ? (
+                <View className="bg-white rounded-2xl px-5 py-5">
+                  <Text className="text-gray-500 text-sm">
+                    No top issues available yet.
+                  </Text>
+                </View>
+              ) : (
+                <>
+                  <BarChart data={topIssueChartData} />
+                  <View className="mt-4">
+                    {topIssuesSummary ? (
+                      <Text className="text-gray-600 text-sm mb-2">
+                        {topIssuesSummary}
+                      </Text>
+                    ) : null}
+                  </View>
+                </>
+              )}
+            </View>
+          </ScrollView>
+        )}
       </View>
       <BottomTabs />
     </ScreenWrapper>

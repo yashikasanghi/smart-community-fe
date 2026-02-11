@@ -52,7 +52,8 @@ const attachErrorHandler = (instance: any) => {
   instance.interceptors.response.use(
     (res: any) => res,
     (error: any) => {
-      if (!error?.response) {
+      const skipAppError = Boolean(error?.config?.skipAppError);
+      if (!skipAppError && !error?.response) {
         setAppError({
           message: "Service is unavailable. Please try again.",
           source: "network",

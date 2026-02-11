@@ -1,312 +1,375 @@
 import Header from "@/components/common/Header";
+import Loader from "@/components/common/Loader";
 import { ScreenWrapper } from "@/components/common/wrappers/ScreenWrapper";
+import BottomTabs from "@/components/navigation/BottomTabs";
+import { UPDATE_ISSUE_STATUS } from "@/graphql/mutations/issues";
 import { ADD_COMMENT, ISSUE_DETAILS } from "@/graphql/queries/issues";
-import { Ionicons } from "@expo/vector-icons";
-import { useMutation, useQuery } from "@apollo/client/react";
-import { useLocalSearchParams } from "expo-router";
-import {
-  FlatList,
-  Image,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-} from "react-native";
 import { useProfile } from "@/hooks/useProfile";
 import { useNotificationsStore } from "@/store/notificationsStore";
-import { useCallback, useMemo, useState } from "react";
 import { IssueDetailsData } from "@/types/issues.types";
-import { formatDateTime, toImageUrl } from "@/helpers/common";
-import BottomTabs from "@/components/navigation/BottomTabs";
-import Loader from "@/components/common/Loader";
+import { gql } from "@apollo/client";
+import { useMutation, useQuery } from "@apollo/client/react";
+import { useLocalSearchParams } from "expo-router";
+import { memo, useCallback, useMemo, useState } from "react";
+import { Text, TouchableOpacity, View } from "react-native";
+import CommentsSection from "./CommentsSection";
+import IssueBody from "./IssueBody";
+import {
+  STATUS_TO_STAGE,
+  ERROR_UPDATE_MESSAGE,
+  ERROR_COMMENT_MESSAGE,
+  STATUS,
+  ROLE,
+  ERROR_LOAD_MESSAGE,
+} from "@/constants/issueDetails";
+import {
+  normalizeStatus,
+  sortCommentsByDate,
+  normalizeRole,
+  getUserId,
+} from "@/helpers/issueDetails.helper";
+import {
+  ErrorStateProps,
+  PartialUser,
+  IssueStatus,
+  AddCommentData,
+  AddCommentVars,
+  UpdateIssueStatusData,
+  UpdateIssueStatusVars,
+  Status,
+} from "@/types/issueDetails.types";
 
-type AddCommentData = {
-  addComment: {
-    id: string;
-    userId: string;
-    userName?: string;
-    text: string;
-    createdAt: string;
+const ErrorState = memo(function ErrorState({
+  message,
+  onRetry,
+}: ErrorStateProps) {
+  return (
+    <View className="px-6 py-8 items-center">
+      <Text className="text-red-600 font-medium mb-3">{message}</Text>
+      {onRetry && (
+        <TouchableOpacity
+          onPress={onRetry}
+          className="px-5 py-2 rounded-full border border-blue-600 bg-white"
+          accessibilityRole="button"
+          accessibilityLabel="Retry loading issue details"
+        >
+          <Text className="text-blue-600 font-semibold">Retry</Text>
+        </TouchableOpacity>
+      )}
+    </View>
+  );
+});
+
+type UseIssueDetailsParams = {
+  issueId?: string;
+  user?: PartialUser | null;
+  lastFetchedAt?: string | number | null;
+};
+
+const useIssueDetails = ({
+  issueId,
+  user,
+  lastFetchedAt,
+}: UseIssueDetailsParams) => {
+  const { data, loading, error, refetch } = useQuery<IssueDetailsData>(
+    ISSUE_DETAILS,
+    {
+      variables: { id: issueId ?? "" },
+      skip: !issueId || !user || !lastFetchedAt,
+      fetchPolicy: "cache-and-network",
+      nextFetchPolicy: "cache-first",
+      notifyOnNetworkStatusChange: true,
+    },
+  );
+
+  const issue = data?.issue;
+  const status = normalizeStatus(issue?.status as Status);
+  const stage = STATUS_TO_STAGE[status];
+  const comments = useMemo(
+    () => sortCommentsByDate(issue?.comments),
+    [issue?.comments],
+  );
+
+  return {
+    issue,
+    status,
+    stage,
+    comments,
+    loading,
+    error,
+    refetch,
+    isLoading: loading && !issue,
   };
 };
 
-type AddCommentVars = {
-  input: {
-    issueId: string;
-    text: string;
+type UseIssueActionsResult = {
+  addComment: (text: string) => Promise<boolean>;
+  updateStatus: (status: IssueStatus) => Promise<void>;
+  isAdding: boolean;
+  isUpdatingStatus: boolean;
+};
+
+const useIssueActions = (
+  issueId: string | undefined,
+  setActionError: (message: string | null) => void,
+): UseIssueActionsResult => {
+  const [addCommentMutation, { loading: isAdding }] = useMutation<
+    AddCommentData,
+    AddCommentVars
+  >(ADD_COMMENT);
+
+  const [updateIssueStatusMutation, { loading: isUpdatingStatus }] =
+    useMutation<UpdateIssueStatusData, UpdateIssueStatusVars>(
+      UPDATE_ISSUE_STATUS,
+    );
+
+  const updateStatus = useCallback(
+    async (nextStatus: IssueStatus) => {
+      if (!issueId || isUpdatingStatus) return;
+      setActionError(null);
+      try {
+        await updateIssueStatusMutation({
+          variables: { issueId, status: nextStatus },
+          optimisticResponse: {
+            updateIssueStatus: {
+              __typename: "Issue",
+              id: issueId,
+              status: nextStatus,
+              updatedAt: new Date().toISOString(),
+            },
+          },
+          update: (cache, { data: mutationData }) => {
+            const updated = mutationData?.updateIssueStatus;
+            if (!updated) return;
+            const issueCacheId = cache.identify({
+              __typename: "Issue",
+              id: issueId,
+            });
+            if (!issueCacheId) return;
+            cache.modify({
+              id: issueCacheId,
+              fields: {
+                status() {
+                  return updated.status;
+                },
+                updatedAt() {
+                  return updated.updatedAt;
+                },
+              },
+            });
+          },
+        });
+      } catch (err) {
+        console.error("[IssueDetails] updateIssueStatus failed", err);
+        setActionError(ERROR_UPDATE_MESSAGE);
+      }
+    },
+    [issueId, isUpdatingStatus, setActionError, updateIssueStatusMutation],
+  );
+
+  const addComment = useCallback(
+    async (text: string) => {
+      if (!issueId || !text) return false;
+      setActionError(null);
+      try {
+        await addCommentMutation({
+          variables: {
+            input: {
+              issueId,
+              text,
+            },
+          },
+          refetchQueries: [
+            {
+              query: ISSUE_DETAILS,
+              variables: { id: issueId },
+            },
+          ],
+          awaitRefetchQueries: true,
+          update: (cache, { data: mutationData }) => {
+            const newComment = mutationData?.addComment;
+            if (!newComment) return;
+            const issueCacheId = cache.identify({
+              __typename: "Issue",
+              id: issueId,
+            });
+            if (!issueCacheId) return;
+            const newCommentRef = cache.writeFragment({
+              data: newComment,
+              fragment: gql`
+                fragment NewComment on Comment {
+                  id
+                  userId
+                  userName
+                  text
+                  createdAt
+                }
+              `,
+            });
+            cache.modify({
+              id: issueCacheId,
+              fields: {
+                comments(existing = []) {
+                  return [...existing, newCommentRef];
+                },
+              },
+            });
+          },
+        });
+        return true;
+      } catch (err) {
+        console.error("[IssueDetails] addComment failed", err);
+        setActionError(ERROR_COMMENT_MESSAGE);
+        return false;
+      }
+    },
+    [addCommentMutation, issueId, setActionError],
+  );
+
+  return {
+    addComment,
+    updateStatus,
+    isAdding,
+    isUpdatingStatus,
   };
 };
 
 export default function IssueDetailsScreen() {
   const { user } = useProfile();
-  const { issueId } = useLocalSearchParams<{ issueId?: string }>();
+  const { issueId: issueIdParam } = useLocalSearchParams<{
+    issueId?: string;
+  }>();
+  const issueId =
+    typeof issueIdParam === "string" && issueIdParam.length > 0
+      ? issueIdParam
+      : undefined;
   const lastFetchedAt = useNotificationsStore((state) => state.lastFetchedAt);
 
-  const { data, loading } = useQuery<IssueDetailsData>(ISSUE_DETAILS, {
-    variables: { id: issueId },
-    skip: !issueId || !user || !lastFetchedAt,
-    fetchPolicy: "cache-and-network",
-    nextFetchPolicy: "cache-first",
-    notifyOnNetworkStatusChange: true,
-  });
+  const [actionError, setActionError] = useState<string | null>(null);
   const [commentText, setCommentText] = useState("");
-  const [addComment, { loading: isAdding }] = useMutation<
-    AddCommentData,
-    AddCommentVars
-  >(ADD_COMMENT);
+  const trimmedComment = commentText.trim();
 
-  const issue = data?.issue;
+  const {
+    issue,
+    status,
+    stage,
+    comments,
+    loading,
+    error: queryError,
+    refetch,
+    isLoading,
+  } = useIssueDetails({ issueId, user, lastFetchedAt });
 
-  const status = issue?.status ?? "OPEN";
+  const { addComment, updateStatus, isAdding, isUpdatingStatus } =
+    useIssueActions(issueId, setActionError);
 
-  const isOpen = status === "OPEN";
-  const isInProgress = status === "IN_PROGRESS";
-  const isResolved = status === "RESOLVED";
+  const { openAchieved, inProgressAchieved, resolvedAchieved } = useMemo(() => {
+    return {
+      openAchieved:
+        stage === "in_progress" ||
+        stage === "resolved" ||
+        stage === "reopen" ||
+        stage === "closed",
+      inProgressAchieved: stage === "resolved" || stage === "closed",
+      resolvedAchieved: stage === "resolved" || stage === "closed",
+    };
+  }, [stage]);
 
-  const onAddComment = useCallback(async () => {
-    if (!issueId || !commentText.trim()) return;
-    await addComment({
-      variables: {
-        input: {
-          issueId,
-          text: commentText.trim(),
-        },
-      },
-      update: (cache, { data }) => {
-        const newComment = data?.addComment;
-        if (!newComment) return;
-        const issueCacheId = cache.identify({
-          __typename: "Issue",
-          id: issueId,
-        });
-        if (!issueCacheId) return;
-        cache.modify({
-          id: issueCacheId,
-          fields: {
-            comments(existing = []) {
-              return [...existing, newComment];
-            },
-          },
-        });
-      },
-    });
-    setCommentText("");
-  }, [addComment, commentText, issueId]);
+  const isInProgress = status === STATUS.IN_PROGRESS;
+  const isResolved = status === STATUS.RESOLVED;
+  const isClosed = status === STATUS.CLOSED;
 
-  const comments = useMemo(() => {
-    const list = issue?.comments ?? [];
-    return [...list].sort((a: any, b: any) => {
-      const at = new Date(a?.createdAt || 0).getTime();
-      const bt = new Date(b?.createdAt || 0).getTime();
-      return bt - at;
-    });
-  }, [issue?.comments]);
+  const normalizedRole = normalizeRole(user?.role);
+  const isAuthority = normalizedRole === ROLE.AUTHORITY;
+  const isCitizen = normalizedRole === ROLE.CITIZEN;
+  const currentUserId = getUserId(user as PartialUser);
+  const isCreator =
+    Boolean(currentUserId) &&
+    issue?.createdBy?.userId === String(currentUserId);
 
-  const renderComment = useCallback(
-    ({ item }: { item: any }) => (
-      <View className="bg-white border border-gray-100 rounded-2xl px-4 py-3">
-        <View className="flex-row items-center justify-between mb-1">
-          <Text className="text-gray-900 font-medium">
-            {item.userName ?? "Unknown User"}
-          </Text>
-          <Text className="text-gray-400 text-xs">
-            {formatDateTime(item.createdAt)}
-          </Text>
-        </View>
-        <Text className="text-gray-700">{item.text}</Text>
-      </View>
-    ),
-    [],
+  const canMoveToInProgress =
+    isAuthority && (status === STATUS.OPEN || status === STATUS.REOPEN);
+  const canMoveToResolved = isAuthority && status === STATUS.IN_PROGRESS;
+  const canRejectIssue = isAuthority && status === STATUS.OPEN;
+  const canCloseIssue = isCitizen && isResolved && isCreator;
+  const canHandleRejected = isCitizen && isCreator && stage === "rejected";
+
+  const handleAddComment = useCallback(async () => {
+    if (!trimmedComment) return;
+    const ok = await addComment(trimmedComment);
+    if (ok) {
+      setCommentText("");
+    }
+  }, [addComment, trimmedComment]);
+
+  const showQueryError = Boolean(queryError) && !issue && !isLoading;
+
+  const markInProgress = useCallback(
+    () => updateStatus(STATUS.IN_PROGRESS),
+    [updateStatus],
   );
-  const isLoading = loading && !issue;
+  const markResolved = useCallback(
+    () => updateStatus(STATUS.RESOLVED),
+    [updateStatus],
+  );
+  const markRejected = useCallback(
+    () => updateStatus(STATUS.REJECTED),
+    [updateStatus],
+  );
+  const markClosed = useCallback(
+    () => updateStatus(STATUS.CLOSED),
+    [updateStatus],
+  );
+  const markReopen = useCallback(
+    () => updateStatus(STATUS.REOPEN),
+    [updateStatus],
+  );
+
+  const issueBody = (
+    <IssueBody
+      issue={issue}
+      stage={stage}
+      openAchieved={openAchieved}
+      inProgressAchieved={inProgressAchieved}
+      resolvedAchieved={resolvedAchieved}
+      isInProgress={isInProgress}
+      isClosed={isClosed}
+      isUpdating={isUpdatingStatus}
+      actionError={actionError}
+      canMoveToInProgress={canMoveToInProgress}
+      canMoveToResolved={canMoveToResolved}
+      canRejectIssue={canRejectIssue}
+      canHandleRejected={canHandleRejected}
+      canCloseIssue={canCloseIssue}
+      onMarkInProgress={markInProgress}
+      onMarkResolved={markResolved}
+      onReject={markRejected}
+      onClose={markClosed}
+      onReopen={markReopen}
+    />
+  );
 
   return (
     <ScreenWrapper cssClass="p-0">
       <View className="flex-1 bg-[#F6F9FC] w-full">
-        {/* Header */}
         <Header name={user?.firstName} />
-
+        {showQueryError && (
+          <ErrorState message={ERROR_LOAD_MESSAGE} onRetry={() => refetch()} />
+        )}
         {isLoading ? (
           <Loader message="Loading issue details..." />
         ) : (
-          <FlatList
-            className="w-full px-6 -mt-8"
-            showsVerticalScrollIndicator={false}
-            data={comments}
-            keyExtractor={(item: any, index) =>
-              (item?.id ?? item?._id ?? index).toString()
-            }
-            renderItem={renderComment}
-            ItemSeparatorComponent={() => <View className="h-3" />}
-            initialNumToRender={8}
-            maxToRenderPerBatch={10}
-            windowSize={7}
-            removeClippedSubviews
-            ListHeaderComponent={
-              <View
-                className="bg-white rounded-3xl px-6 py-6 mb-6"
-                style={{
-                  shadowColor: "#000",
-                  shadowOffset: { width: 0, height: 8 },
-                  shadowOpacity: 0.1,
-                  shadowRadius: 18,
-                  elevation: 10,
-                }}
-              >
-                {/* Title */}
-                <Text className="text-xl font-semibold text-gray-900 mb-3">
-                  {issue?.shortDescription ?? "Issue Details"}
-                </Text>
-
-                {/* Image */}
-                <View className="mb-4 items-center">
-                  <Image
-                    source={
-                      toImageUrl(issue?.images?.[0])
-                        ? { uri: toImageUrl(issue?.images?.[0]) as string }
-                        : require("@/assets/images/default-issue-img.jpg")
-                    }
-                    className="rounded-xl"
-                    style={{ width: 250, height: 250 }}
-                    resizeMode="cover"
-                  />
-                </View>
-
-                {/* Status Tracker */}
-                <View className="flex-row items-center justify-between mb-6">
-                  {/* Open */}
-                  <View className="items-center flex-1">
-                    <Ionicons
-                      name={isOpen ? "checkmark-circle" : "ellipse"}
-                      size={22}
-                      color={isOpen ? "#22C55E" : "#D1D5DB"}
-                    />
-                    <Text
-                      className={`text-xs mt-1 ${
-                        isOpen ? "text-gray-700" : "text-gray-400"
-                      }`}
-                    >
-                      Open
-                    </Text>
-                  </View>
-
-                  <View className="h-px bg-gray-300 flex-1 mx-1" />
-
-                  {/* In Progress */}
-                  <View className="items-center flex-1">
-                    {isInProgress ? (
-                      <View className="w-6 h-6 rounded-full border-2 border-blue-600 items-center justify-center">
-                        <View className="w-2 h-2 rounded-full bg-blue-600" />
-                      </View>
-                    ) : (
-                      <Ionicons name="ellipse" size={18} color="#D1D5DB" />
-                    )}
-                    <Text
-                      className={`text-xs mt-1 text-center ${
-                        isInProgress
-                          ? "text-blue-600 font-semibold"
-                          : "text-gray-400"
-                      }`}
-                    >
-                      In Progress
-                    </Text>
-                  </View>
-
-                  <View className="h-px bg-gray-300 flex-1 mx-1" />
-
-                  {/* Resolved */}
-                  <View className="items-center flex-1">
-                    <Ionicons
-                      name={isResolved ? "checkmark-circle" : "ellipse"}
-                      size={18}
-                      color={isResolved ? "#22C55E" : "#D1D5DB"}
-                    />
-                    <Text
-                      className={`text-xs mt-1 ${
-                        isResolved
-                          ? "text-green-600 font-semibold"
-                          : "text-gray-400"
-                      }`}
-                    >
-                      Resolved
-                    </Text>
-                  </View>
-                </View>
-
-                {/* Description */}
-                <View
-                  className="bg-gray-50 rounded-2xl px-4 py-4"
-                  style={{
-                    shadowColor: "#000",
-                    shadowOffset: { width: 0, height: 3 },
-                    shadowOpacity: 0.05,
-                    shadowRadius: 8,
-                    elevation: 4,
-                  }}
-                >
-                  <Text className="text-gray-800 font-medium mb-1">
-                    Description
-                  </Text>
-                  <Text className="text-gray-600">
-                    {issue?.description ?? "No description provided."}
-                  </Text>
-                </View>
-
-                <View
-                  className="bg-gray-50 rounded-2xl px-4 py-4"
-                  style={{
-                    shadowColor: "#000",
-                    shadowOffset: { width: 0, height: 3 },
-                    shadowOpacity: 0.05,
-                    shadowRadius: 8,
-                    elevation: 4,
-                  }}
-                >
-                  <Text className="text-gray-800 font-medium mb-1">
-                    Location
-                  </Text>
-                  <Text className="text-gray-600 text-sm">
-                    {issue?.location?.address ?? "-"}
-                    {issue?.location?.city ?? ""} {issue?.location?.state ?? ""}
-                    {", "}
-                    {issue?.location?.pincode ?? ""}
-                  </Text>
-                </View>
-
-                {/* Comments */}
-                <View className="mt-6">
-                  <Text className="text-gray-800 font-medium mb-2">
-                    Comments
-                  </Text>
-
-                  <View className="bg-gray-50 rounded-2xl px-4 py-3 mb-4">
-                    <TextInput
-                      placeholder="Write a comment..."
-                      value={commentText}
-                      onChangeText={setCommentText}
-                      className="text-gray-800"
-                      multiline
-                    />
-                    <TouchableOpacity
-                      onPress={onAddComment}
-                      disabled={!commentText.trim() || isAdding}
-                      className={`mt-3 px-4 py-2 rounded-full self-end ${
-                        commentText.trim() ? "bg-blue-600" : "bg-gray-300"
-                      }`}
-                    >
-                      <Text className="text-white text-sm font-semibold">
-                        {isAdding ? "Posting..." : "Post"}
-                      </Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              </View>
-            }
-            ListEmptyComponent={
-              <Text className="text-gray-400 text-sm">No comments yet.</Text>
-            }
+          <CommentsSection
+            header={issueBody}
+            comments={comments}
+            commentText={commentText}
+            onChangeComment={setCommentText}
+            onSubmitComment={handleAddComment}
+            isAdding={isAdding}
+            canSubmit={Boolean(trimmedComment)}
           />
         )}
+
         <BottomTabs />
       </View>
     </ScreenWrapper>

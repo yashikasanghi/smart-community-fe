@@ -19,7 +19,7 @@ const fetchWardsByPincode = async (
       city: res.data.city,
       wards: res.data.wards.map((w) => ({
         label: w.wardName,
-        value: w.wardID,
+        value: w.wardId,
       })),
     };
   } catch (error) {

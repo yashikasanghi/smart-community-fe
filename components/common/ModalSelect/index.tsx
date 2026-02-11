@@ -35,6 +35,8 @@ export function ModalSelect({
 
   const selectedLabel = options.find((o) => o.value === value)?.label || value;
 
+  console.log("options", options);
+
   return (
     <>
       {/* Trigger */}
@@ -44,6 +46,9 @@ export function ModalSelect({
         className={`border border-gray-300 rounded-xl px-4 justify-center h-12 bg-white ${
           disabled ? "opacity-50" : ""
         }`}
+        accessibilityRole="button"
+        accessibilityLabel={title}
+        accessibilityState={{ disabled, expanded: open }}
       >
         <Text className={selectedLabel ? "text-black" : "text-gray-400"}>
           {selectedLabel || placeholder}
@@ -66,6 +71,7 @@ export function ModalSelect({
             justifyContent: "center",
             alignItems: "center",
           }}
+          accessibilityLabel="Close selection"
         >
           {/* Box */}
           <Pressable
@@ -78,6 +84,7 @@ export function ModalSelect({
               overflow: "hidden",
               elevation: 12,
             }}
+            accessibilityViewIsModal
           >
             {/* Header */}
             <View className="px-4 py-3 border-b border-gray-200">
@@ -92,6 +99,7 @@ export function ModalSelect({
               renderItem={({ item, index }) => (
                 <TouchableOpacity
                   onPress={() => {
+                    console.log("ward", item);
                     onChange(item.value);
                     setOpen(false);
                   }}
@@ -100,6 +108,8 @@ export function ModalSelect({
                       ? "border-b border-gray-100"
                       : ""
                   }`}
+                  accessibilityRole="button"
+                  accessibilityLabel={item.label}
                 >
                   <Text className="text-base">{item.label}</Text>
                 </TouchableOpacity>

@@ -1,5 +1,5 @@
 export interface Ward {
-  wardID: string;
+  wardId: string;
   wardName: string;
 }
 

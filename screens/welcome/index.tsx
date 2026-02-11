@@ -25,7 +25,7 @@ export default function WelcomeScreen() {
           <TextLink
             label="Login"
             onPress={() => routeToLogin()}
-            cssClass="px-16 mx-6 "
+            cssClass="px-16 mx-6 text-center"
           />
         </View>
       </View>

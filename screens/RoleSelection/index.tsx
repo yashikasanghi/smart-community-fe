@@ -57,11 +57,16 @@ export default function RoleSelectionScreen() {
                 : "border border-gray-200"
             }`}
             style={{ backgroundColor: "#6FB1E8", height: 200, width: 150 }}
+            accessibilityRole="button"
+            accessibilityLabel="Select Citizen role"
+            accessibilityState={{ selected: selectedRole === "CITIZEN" }}
           >
             <Image
               source={require("@/assets/images/citizen.png")}
               style={{ width: 50, height: 50, marginBottom: 12 }}
               resizeMode="contain"
+              accessibilityLabel="Citizen icon"
+              accessible
             />
             <Text className="text-white font-semibold text-lg">Citizen</Text>
             <Text className="text-white text-sm text-center mt-2">
@@ -78,11 +83,16 @@ export default function RoleSelectionScreen() {
                 : "border border-gray-200"
             }`}
             style={{ backgroundColor: "#57C37A", height: 200, width: 150 }}
+            accessibilityRole="button"
+            accessibilityLabel="Select Authority role"
+            accessibilityState={{ selected: selectedRole === "AUTHORITY" }}
           >
             <Image
               source={require("@/assets/images/authority.png")}
               style={{ width: 50, height: 50, marginBottom: 12 }}
               resizeMode="contain"
+              accessibilityLabel="Authority icon"
+              accessible
             />
             <Text className="text-white font-semibold text-lg">Authority</Text>
             <Text className="text-white text-sm text-center mt-2">
