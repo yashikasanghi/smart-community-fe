@@ -146,7 +146,8 @@ const OutlinedButton = memo(function OutlinedButton({
   intent,
   accessibilityLabel,
 }: OutlinedButtonProps) {
-  const borderClass = intent === "danger" ? "border-red-600" : "border-blue-600";
+  const borderClass =
+    intent === "danger" ? "border-red-600" : "border-blue-600";
   const textClass = intent === "danger" ? "text-red-600" : "text-blue-600";
 
   return (
@@ -249,7 +250,9 @@ const IssueBody = memo(function IssueBody({
 
       {stage === "rejected" && (
         <View className="mb-6">
-          <Text className="text-red-600 font-medium text-center">Rejected.</Text>
+          <Text className="text-red-600 font-medium text-center">
+            Rejected.
+          </Text>
         </View>
       )}
 
@@ -287,14 +290,28 @@ const IssueBody = memo(function IssueBody({
         />
       )}
 
-      <View className="bg-gray-50 rounded-2xl px-4 py-4" style={styles.metaCard}>
+      <View
+        className="bg-gray-50 rounded-2xl px-4 py-4"
+        style={styles.metaCard}
+      >
         <Text className="text-gray-800 font-medium mb-1">Description</Text>
         <Text className="text-gray-600">
           {issue?.description ?? DEFAULT_DESCRIPTION}
         </Text>
       </View>
 
-      <View className="bg-gray-50 rounded-2xl px-4 py-4" style={styles.metaCard}>
+      <View
+        className="bg-gray-50 rounded-2xl px-4 py-4"
+        style={styles.metaCard}
+      >
+        <Text className="text-gray-800 font-medium mb-1">Category</Text>
+        <Text className="text-gray-600">{issue?.category ?? "OTHER"}</Text>
+      </View>
+
+      <View
+        className="bg-gray-50 rounded-2xl px-4 py-4"
+        style={styles.metaCard}
+      >
         <Text className="text-gray-800 font-medium mb-1">Location</Text>
         <Text className="text-gray-600 text-sm">
           {issue?.location?.address ?? "-"}

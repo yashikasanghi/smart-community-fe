@@ -30,6 +30,7 @@ export default function SignupForm() {
     control,
     watch,
     setValue,
+    trigger,
     handleSubmit,
     formState: { errors },
   } = useForm<FormData>({
@@ -54,6 +55,8 @@ export default function SignupForm() {
   const pincode = watch("pincode");
 
   const [wards, setWards] = useState<{ label: string; value: string }[]>([]);
+
+  console.log("wards", wards);
 
   type WardCache = {
     city: string;
@@ -249,7 +252,7 @@ export default function SignupForm() {
               <ModalSelect
                 title="Select Ward"
                 placeholder="Select Ward"
-                value={field.value?.wardName}
+                value={field.value?.wardId}
                 options={wards}
                 disabled={wards.length === 0}
                 onChange={(selected) => {
@@ -257,10 +260,19 @@ export default function SignupForm() {
 
                   if (!selectedWard) return;
 
-                  field.onChange({
+                  const wardValue = {
                     wardId: selectedWard.value,
                     wardName: selectedWard.label,
+                  };
+                  field.onChange(wardValue);
+                  setValue("ward", wardValue, {
+                    shouldValidate: true,
+                    shouldDirty: true,
                   });
+                  setValue("wardName", selectedWard.label, {
+                    shouldValidate: false,
+                  });
+                  trigger("ward");
                 }}
               />
             )}
